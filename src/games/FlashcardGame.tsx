@@ -1,0 +1,298 @@
+import React, { useState, useRef } from 'react';
+import confetti from 'canvas-confetti';
+import {
+  Trophy,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  Sparkles,
+  CheckCircle2,
+  RotateCw,
+} from 'lucide-react';
+import type { ActivityItem } from '../types/game';
+
+interface FlashcardGameProps {
+  title?: string;
+  items: ActivityItem[];
+  onFinish?: (score: number) => void;
+  isEmbed?: boolean;
+}
+
+export const FlashcardGame: React.FC<FlashcardGameProps> = ({
+  title: _title = 'Bilgi Kartı Destesi (Flashcard)',
+  items,
+  onFinish,
+  isEmbed = false,
+}) => {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [knownCount, setKnownCount] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const currentItem = items[currentIdx] || items[0];
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const playSound = (type: 'flip' | 'known' | 'review' | 'win') => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioCtx();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'flip') {
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(700, now + 0.1);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } else if (type === 'known') {
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === 'review') {
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.linearRampToValueAtTime(160, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      } else if (type === 'win') {
+        [440, 554, 659, 880].forEach((freq, i) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.frequency.value = freq;
+          g.gain.setValueAtTime(0.2, now + i * 0.1);
+          g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+          o.start(now + i * 0.1);
+          o.stop(now + i * 0.1 + 0.3);
+        });
+      }
+    } catch {
+      // Audio fallback
+    }
+  };
+
+  const handleFlip = () => {
+    playSound('flip');
+    setIsFlipped(!isFlipped);
+  };
+
+  const handleNext = (learned: boolean) => {
+    if (learned) {
+      playSound('known');
+      setKnownCount((prev) => prev + 1);
+    } else {
+      playSound('review');
+      setReviewCount((prev) => prev + 1);
+    }
+
+    setIsFlipped(false);
+    if (currentIdx + 1 < items.length) {
+      setCurrentIdx((prev) => prev + 1);
+    } else {
+      finishGame(knownCount + (learned ? 1 : 0));
+    }
+  };
+
+  const finishGame = (finalKnown: number) => {
+    setIsFinished(true);
+    playSound('win');
+    confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+    const finalScore = finalKnown * 100;
+    if (onFinish) onFinish(finalScore);
+    if ((window as any)?.ReactNativeWebView) {
+      (window as any).ReactNativeWebView.postMessage(
+        JSON.stringify({ type: 'GAME_COMPLETED', score: finalScore, known: finalKnown })
+      );
+    }
+  };
+
+  const resetGame = () => {
+    setCurrentIdx(0);
+    setIsFlipped(false);
+    setKnownCount(0);
+    setReviewCount(0);
+    setIsFinished(false);
+  };
+
+  return (
+    <div
+      className={`relative w-full max-w-2xl mx-auto flex flex-col items-center select-none ${
+        isEmbed ? 'p-1' : 'p-4'
+      }`}
+    >
+      {/* HUD Bar */}
+      <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <span className="text-xs font-extrabold text-slate-600">
+              Kart: <strong className="text-slate-900 text-base">{currentIdx + 1} / {items.length}</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs font-bold">
+            <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+              <CheckCircle2 size={14} className="text-emerald-600" /> {knownCount} Biliyorum
+            </span>
+            <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+              <RotateCw size={14} className="text-amber-600" /> {reviewCount} Tekrar Et
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
+            title="Sesi Aç/Kapat"
+          >
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
+          <button
+            onClick={resetGame}
+            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
+            title="Yeniden Başlat"
+          >
+            <RotateCcw size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-5">
+        <div
+          className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full transition-all duration-300 rounded-full"
+          style={{ width: `${((currentIdx + 1) / items.length) * 100}%` }}
+        />
+      </div>
+
+      {/* 3D Flip Card Container */}
+      <div
+        onClick={handleFlip}
+        className="w-full h-80 sm:h-96 cursor-pointer group perspective-1000 mb-6 select-none"
+        style={{ perspective: 1000, WebkitPerspective: 1000 }}
+      >
+        <div
+          className="relative w-full h-full duration-500 shadow-2xl rounded-3xl transform-style-preserve-3d"
+          style={{
+            transformStyle: 'preserve-3d',
+            WebkitTransformStyle: 'preserve-3d',
+            transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+            transition: 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          {/* FRONT OF CARD (Question / Term) */}
+          <div
+            className="absolute inset-0 backface-hidden rounded-3xl p-8 bg-gradient-to-br from-white via-slate-50 to-slate-100 border-2 border-slate-200 flex flex-col justify-between items-center text-center shadow-lg group-hover:border-blue-400 transition-colors"
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(0deg)',
+            }}
+          >
+            <div className="w-full flex items-center justify-between text-xs font-extrabold text-slate-400 uppercase tracking-widest">
+              <span>Ön Yüz • Soru</span>
+              <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                <RotateCw size={12} /> Çevirmek için dokun
+              </span>
+            </div>
+
+            <div className="my-auto px-4">
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 font-display leading-relaxed">
+                {currentItem.question}
+              </h3>
+            </div>
+
+            <span className="text-xs font-bold text-slate-400">
+              Cevabı görmek için karta tıklayın
+            </span>
+          </div>
+
+          {/* BACK OF CARD (Answer / Definition) */}
+          <div
+            className="absolute inset-0 backface-hidden rounded-3xl p-8 bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white flex flex-col justify-between items-center text-center shadow-xl border-2 border-blue-400"
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+            }}
+          >
+            <div className="w-full flex items-center justify-between text-xs font-extrabold text-blue-200 uppercase tracking-widest">
+              <span>Arka Yüz • Yanıt</span>
+              <span className="bg-white/10 px-2.5 py-1 rounded-full">Doğru Cevap</span>
+            </div>
+
+            <div className="my-auto px-4">
+              <h3 className="text-2xl sm:text-3xl font-black text-white font-display leading-relaxed">
+                {currentItem.answer}
+              </h3>
+            </div>
+
+            <span className="text-xs font-medium text-blue-200/80">
+              Aşağıdaki butonlarla değerlendirin
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons: Tekrar Et vs Biliyorum */}
+      <div className="grid grid-cols-2 gap-4 w-full">
+        <button
+          onClick={() => handleNext(false)}
+          className="py-4 px-6 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 active:scale-95 text-amber-700 border-2 border-amber-300 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+        >
+          <RotateCw size={18} />
+          <span>Tekrar Etmem Gerek</span>
+        </button>
+
+        <button
+          onClick={() => handleNext(true)}
+          className="py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white border-2 border-emerald-400 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xl shadow-emerald-600/25"
+        >
+          <CheckCircle2 size={18} />
+          <span>Biliyorum!</span>
+        </button>
+      </div>
+
+      {/* Finished Modal */}
+      {isFinished && (
+        <div className="absolute inset-0 z-40 bg-slate-900/90 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-500 text-white flex items-center justify-center mb-4 shadow-xl shadow-emerald-500/30">
+            <Sparkles size={36} />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 font-display">
+            Tebrikler, Desteyi Tamamladınız!
+          </h2>
+          <p className="text-slate-300 text-sm mb-6 max-w-md">
+            Toplam <strong className="text-emerald-400">{knownCount} kartı</strong> tam olarak öğrendiniz!
+          </p>
+
+          <button
+            onClick={resetGame}
+            className="py-3 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg flex items-center gap-2 active:scale-95 transition-all"
+          >
+            <RotateCcw size={16} />
+            <span>Desteyi Yeniden Çalış</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -112,7 +112,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({
           </div>
 
           {/* User's Answer Slots */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-8 min-h-[70px]">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-5 sm:mb-8 min-h-[56px] sm:min-h-[70px]">
             {targetWord
               .replace(/\s+/g, '')
               .split('')
@@ -123,7 +123,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({
                     key={idx}
                     onClick={() => char && handleUserClick(idx)}
                     disabled={!char || isSolved}
-                    className={`w-12 h-14 sm:w-14 sm:h-16 rounded-xl font-black text-2xl flex items-center justify-center border-2 transition-all ${
+                    className={`w-10 h-12 sm:w-14 sm:h-16 rounded-xl font-black text-lg sm:text-2xl flex items-center justify-center border-2 transition-all ${
                       char
                         ? isSolved
                           ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
@@ -138,13 +138,13 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({
           </div>
 
           {/* Scrambled Letter Bank */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-5 sm:mb-8">
             {bankLetters.map((item, idx) => (
               <button
                 key={item.id}
                 onClick={() => handleBankClick(idx)}
                 disabled={item.used || isSolved}
-                className={`w-12 h-14 sm:w-14 sm:h-16 rounded-xl font-black text-2xl flex items-center justify-center border transition-all ${
+                className={`w-10 h-12 sm:w-14 sm:h-16 rounded-xl font-black text-lg sm:text-2xl flex items-center justify-center border transition-all ${
                   item.used
                     ? 'opacity-25 bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed scale-90'
                     : 'bg-gradient-to-br from-indigo-500 to-purple-600 border-purple-400/50 hover:border-purple-300 text-white shadow-md active:scale-95 hover:-translate-y-1'

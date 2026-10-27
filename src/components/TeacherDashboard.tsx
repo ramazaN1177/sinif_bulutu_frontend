@@ -118,8 +118,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     <div className="w-full min-h-screen bg-[#F8FAFC] pb-16">
       {/* 1. TOP HERO STATS & WELCOME BANNER */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 sm:gap-6 mb-6 sm:mb-8">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-black mb-2">
                 <School size={14} />
@@ -128,16 +128,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-display">
                 Hoş Geldiniz, Öğretmenim
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl leading-relaxed">
                 Sınıflarınızı yönetin, ödev atayın ve akıllı tahta oyun şablonlarınızı canlı stüdyoda üretin.
               </p>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex flex-wrap items-center gap-3">
+            {/* Quick Actions (Full-width buttons on mobile, compact on tablet/desktop) */}
+            <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2.5 w-full md:w-auto">
               <button
                 onClick={() => setCreateClassModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
               >
                 <Plus size={16} />
                 <span>Yeni Sınıf Aç</span>
@@ -145,7 +145,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
               <button
                 onClick={() => setCreateAssignmentModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
               >
                 <BookOpen size={16} />
                 <span>Ödev Ver</span>
@@ -153,7 +153,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
               <button
                 onClick={() => onOpenStudio()}
-                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-md shadow-blue-500/25 flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
               >
                 <Sparkles size={16} />
                 <span>Yeni Şablon / Oyun Üret</span>
@@ -162,54 +162,54 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           {/* 4 Core Summary Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-500 block mb-1">Aktif Sınıflar</span>
-                <strong className="text-2xl font-black text-slate-900 font-display">{classes.length}</strong>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-500 block mb-0.5 sm:mb-1">Aktif Sınıflar</span>
+                <strong className="text-xl sm:text-2xl font-black text-slate-900 font-display">{classes.length}</strong>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                <School size={20} />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <School size={18} />
               </div>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-500 block mb-1">Toplam Öğrenci</span>
-                <strong className="text-2xl font-black text-slate-900 font-display">{totalStudents}</strong>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-500 block mb-0.5 sm:mb-1">Toplam Öğrenci</span>
+                <strong className="text-xl sm:text-2xl font-black text-slate-900 font-display">{totalStudents}</strong>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                <Users size={20} />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <Users size={18} />
               </div>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-500 block mb-1">Gelen Ödevler</span>
-                <strong className="text-2xl font-black text-slate-900 font-display">{totalSubmissions}</strong>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-500 block mb-0.5 sm:mb-1">Gelen Ödevler</span>
+                <strong className="text-xl sm:text-2xl font-black text-slate-900 font-display">{totalSubmissions}</strong>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
-                <BookOpen size={20} />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <BookOpen size={18} />
               </div>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-500 block mb-1">Oyun Şablonları</span>
-                <strong className="text-2xl font-black text-slate-900 font-display">{activities.length}</strong>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-500 block mb-0.5 sm:mb-1">Oyun Şablonları</span>
+                <strong className="text-xl sm:text-2xl font-black text-slate-900 font-display">{activities.length}</strong>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center">
-                <Layers size={20} />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                <Layers size={18} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-6 border-t border-slate-100">
+        {/* Tab Navigation (Horizontally scrollable on mobile) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4 sm:gap-6 border-t border-slate-100 overflow-x-auto scrollbar-none whitespace-nowrap">
           <button
             onClick={() => setActiveTab('classes')}
-            className={`py-3.5 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`py-3.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'classes'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -221,7 +221,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           <button
             onClick={() => setActiveTab('assignments')}
-            className={`py-3.5 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`py-3.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'assignments'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -233,7 +233,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           <button
             onClick={() => setActiveTab('activities')}
-            className={`py-3.5 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`py-3.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'activities'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -250,7 +250,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         {/* TAB 1: CLASSES */}
         {activeTab === 'classes' && (
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-xl font-black text-slate-900 font-display">Açtığınız Sınıflar</h2>
                 <p className="text-xs text-slate-500">
@@ -259,7 +259,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
               <button
                 onClick={() => setCreateClassModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer shrink-0"
               >
                 <Plus size={14} />
                 <span>Sınıf Ekle</span>
@@ -377,7 +377,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         {/* TAB 2: ASSIGNMENTS */}
         {activeTab === 'assignments' && (
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-xl font-black text-slate-900 font-display">Verilen Ödevler</h2>
                 <p className="text-xs text-slate-500">
@@ -386,7 +386,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
               <button
                 onClick={() => setCreateAssignmentModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer shrink-0"
               >
                 <Plus size={14} />
                 <span>Yeni Ödev Ver</span>
@@ -415,10 +415,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 {assignments.map((asg) => (
                   <div
                     key={asg.id}
-                    className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
                           {asg.className}
                         </span>
@@ -434,7 +434,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         {asg.description}
                       </p>
 
-                      <div className="flex items-center gap-4 text-xs font-semibold text-slate-500">
+                      <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 flex-wrap">
                         <div className="flex items-center gap-1 text-rose-600">
                           <Clock size={14} />
                           <span>Son Teslim: {asg.dueDate}</span>
@@ -447,8 +447,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     </div>
 
                     {/* Submission Progress & Button */}
-                    <div className="flex items-center gap-4 md:border-l md:border-slate-100 md:pl-6 shrink-0">
-                      <div className="text-right">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 md:border-t-0 md:pt-0 md:border-l md:pl-6 shrink-0">
+                      <div className="text-left sm:text-right">
                         <span className="text-xs font-extrabold text-slate-800 block">
                           {asg.submissionCount || 0} / {asg.totalStudents || 20} Teslim
                         </span>
@@ -459,7 +459,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                       <button
                         onClick={() => alert(`"${asg.title}" ödevi için teslim edilen dosyalar listeleniyor.`)}
-                        className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                       >
                         <Eye size={15} />
                         <span>Teslimleri İncele</span>
@@ -475,7 +475,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         {/* TAB 3: ACTIVITIES & TEMPLATES */}
         {activeTab === 'activities' && (
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-xl font-black text-slate-900 font-display">
                   Şablonlarım & Etkileşimli Oyunlar ({activities.length})
@@ -486,7 +486,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
               <button
                 onClick={() => onOpenStudio()}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer shrink-0"
               >
                 <Plus size={14} />
                 <span>Stüdyoda Yeni Üret</span>
@@ -494,7 +494,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </div>
 
             {activities.length === 0 ? (
-              <div className="p-12 rounded-3xl bg-white border border-slate-200 text-center max-w-2xl mx-auto shadow-xs">
+              <div className="p-8 sm:p-12 rounded-3xl bg-white border border-slate-200 text-center max-w-2xl mx-auto shadow-xs">
                 <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mx-auto mb-4">
                   <Sparkles size={28} />
                 </div>
@@ -506,18 +506,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </p>
                 <button
                   onClick={() => onOpenStudio()}
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-sm shadow-md shadow-blue-500/25 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-sm shadow-md shadow-blue-500/25 active:scale-95 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Plus size={16} />
                   <span>Şablon Stüdyosu'nda Yeni Oyun Tasarla</span>
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {activities.map((act) => (
                   <div
                     key={act.id}
-                    className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs hover:shadow-lg transition-all flex flex-col justify-between"
+                    className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xs hover:shadow-lg transition-all flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-3">
@@ -576,8 +576,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       {/* MODAL: CREATE CLASS */}
       {createClassModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md p-6 sm:p-7 rounded-3xl bg-white border border-slate-200 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-2xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-xl font-black text-slate-900 mb-4 font-display">
               Yeni Sınıf Oluştur
             </h3>
@@ -638,7 +638,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm"
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm cursor-pointer"
                 >
                   Sınıfı Oluştur
                 </button>
@@ -650,8 +650,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       {/* MODAL: CREATE ASSIGNMENT */}
       {createAssignmentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md p-6 sm:p-7 rounded-3xl bg-white border border-slate-200 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-2xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-xl font-black text-slate-900 mb-4 font-display">
               Öğrencilere Ödev Ver
             </h3>
@@ -727,8 +727,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       {/* MODAL: CLASS STUDENTS ROSTER */}
       {selectedClassDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg p-6 sm:p-7 rounded-3xl bg-white border border-slate-200 shadow-2xl max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-2xl max-h-[88vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <span className="text-[11px] font-black uppercase text-blue-700 block">
@@ -740,22 +740,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
               <button
                 onClick={() => setSelectedClassDetail(null)}
-                className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 mb-4 flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <span className="text-[10px] font-bold text-blue-700 block">Akıllı Tahtada Paylaşılacak Kod:</span>
-                <strong className="text-lg font-black text-slate-900 font-mono tracking-wider">{selectedClassDetail.code}</strong>
+                <strong className="text-xl font-black text-slate-900 font-mono tracking-wider">{selectedClassDetail.code}</strong>
               </div>
               <button
                 onClick={() => handleCopyCode(selectedClassDetail.code)}
-                className="px-3 py-1.5 rounded-lg bg-white text-blue-700 border border-blue-200 text-xs font-bold shadow-xs cursor-pointer"
+                className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-white text-blue-700 border border-blue-200 text-xs font-bold shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
               >
-                {copiedCode === selectedClassDetail.code ? 'Kopyalandı!' : 'Kopyala'}
+                {copiedCode === selectedClassDetail.code ? 'Kopyalandı!' : 'Kodu Kopyala'}
               </button>
             </div>
 

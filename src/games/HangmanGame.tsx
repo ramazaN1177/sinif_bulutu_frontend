@@ -43,7 +43,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   const playSound = (type: 'correct' | 'wrong' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -88,6 +88,34 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
       // Fallback
     }
   };
+
+  useEffect(() => {
+    const handleSilence = () => {
+      if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+        audioCtxRef.current.suspend().catch(() => {});
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        handleSilence();
+      }
+    };
+
+    window.addEventListener('app_pause_audio', handleSilence);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('app_pause_audio', handleSilence);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (audioCtxRef.current) {
+        try {
+          audioCtxRef.current.close().catch(() => {});
+        } catch {}
+        audioCtxRef.current = null;
+      }
+    };
+  }, []);
 
   const handleGuess = (letter: string) => {
     const upper = letter.toLocaleUpperCase('tr-TR');
@@ -258,16 +286,16 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
         </div>
 
         {/* Word Blank Slots */}
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 mb-6 sm:mb-8 max-w-full">
           {targetWord.split('').map((char, idx) => {
             if (char === ' ') {
-              return <div key={idx} className="w-4" />;
+              return <div key={idx} className="w-2 sm:w-4" />;
             }
             const isRevealed = guessedLetters.includes(char) || wrongGuesses >= maxWrong;
             return (
               <div
                 key={idx}
-                className={`w-9 sm:w-11 h-12 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-2xl font-black transition-all ${
+                className={`w-7 sm:w-11 h-10 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-base sm:text-2xl font-black transition-all ${
                   isRevealed
                     ? 'bg-rose-600 text-white border-2 border-rose-300 shadow-lg shadow-rose-500/20'
                     : 'bg-slate-800 text-transparent border-2 border-slate-700'
@@ -280,9 +308,9 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
         </div>
 
         {/* Turkish Virtual Keyboard */}
-        <div className="flex flex-col items-center gap-2 w-full max-w-xl">
+        <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full max-w-xl">
           {TURKISH_KEYBOARD.map((row, rowIdx) => (
-            <div key={rowIdx} className="flex items-center gap-1.5 sm:gap-2">
+            <div key={rowIdx} className="flex items-center justify-center gap-1 sm:gap-2 w-full">
               {row.map((letter) => {
                 const isGuessed = guessedLetters.includes(letter);
                 const isCorrect = isGuessed && targetWord.includes(letter);
@@ -293,7 +321,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
                     key={letter}
                     disabled={isGuessed || isFinished || wrongGuesses >= maxWrong}
                     onClick={() => handleGuess(letter)}
-                    className={`w-8 sm:w-10 h-10 sm:h-12 rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-150 flex items-center justify-center active:scale-95 ${
+                    className={`w-[min(30px,8vw)] sm:w-10 h-9 sm:h-12 rounded-lg sm:rounded-xl font-extrabold text-[11px] sm:text-sm transition-all duration-150 flex items-center justify-center active:scale-95 ${
                       isCorrect
                         ? 'bg-emerald-600 text-white opacity-80 cursor-default'
                         : isWrong

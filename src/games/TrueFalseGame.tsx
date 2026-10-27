@@ -40,8 +40,41 @@ export const TrueFalseGame: React.FC<TrueFalseGameProps> = ({
   const currentItem = items[currentIdx] || items[0];
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for mobile backgrounding or tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      setIsPlaying(false);
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
+    };
+  }, []);
+
   const playSound = (type: 'correct' | 'wrong' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -213,7 +246,7 @@ export const TrueFalseGame: React.FC<TrueFalseGameProps> = ({
 
       {/* Main Card with Question Statement */}
       <div
-        className={`w-full min-h-[260px] sm:min-h-[300px] p-6 sm:p-10 rounded-3xl bg-white border-2 transition-all duration-300 flex flex-col items-center justify-center text-center shadow-2xl relative overflow-hidden ${
+        className={`w-full min-h-[180px] sm:min-h-[280px] p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white border-2 transition-all duration-300 flex flex-col items-center justify-center text-center shadow-xl relative overflow-hidden ${
           feedback === 'correct'
             ? 'border-emerald-500 bg-emerald-50/50 scale-[1.02]'
             : feedback === 'wrong'
@@ -221,37 +254,49 @@ export const TrueFalseGame: React.FC<TrueFalseGameProps> = ({
             : 'border-slate-200 hover:border-slate-300'
         }`}
       >
-        <span className="text-xs font-extrabold uppercase tracking-widest text-teal-600 mb-3 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+        <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-teal-600 mb-2 sm:mb-3 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
           İfade {currentIdx + 1} / {items.length}
         </span>
 
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 max-w-xl font-display leading-snug">
-          "{currentItem.question}"
-        </h2>
+        {currentItem.image && (
+          <div className="mb-3 max-h-36 sm:max-h-48 max-w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 shadow-md">
+            <img
+              src={currentItem.image}
+              alt={currentItem.question || 'İfade görseli'}
+              className="max-h-36 sm:max-h-48 w-auto object-contain mx-auto"
+            />
+          </div>
+        )}
+
+        {currentItem.question && (
+          <h2 className="text-base sm:text-2xl font-black text-slate-900 max-w-xl font-display leading-snug px-1">
+            "{currentItem.question}"
+          </h2>
+        )}
 
         {/* Feedback Aura Icon */}
         {feedback === 'correct' && (
-          <div className="absolute top-4 right-4 p-2 rounded-2xl bg-emerald-500 text-white shadow-lg animate-scale-in">
-            <CheckCircle2 size={24} />
+          <div className="absolute top-3 right-3 p-1.5 sm:p-2 rounded-xl bg-emerald-500 text-white shadow-lg animate-scale-in">
+            <CheckCircle2 size={20} className="sm:w-6 sm:h-6" />
           </div>
         )}
         {feedback === 'wrong' && (
-          <div className="absolute top-4 right-4 p-2 rounded-2xl bg-rose-500 text-white shadow-lg animate-scale-in">
-            <XCircle size={24} />
+          <div className="absolute top-3 right-3 p-1.5 sm:p-2 rounded-xl bg-rose-500 text-white shadow-lg animate-scale-in">
+            <XCircle size={20} className="sm:w-6 sm:h-6" />
           </div>
         )}
       </div>
 
       {/* Decision Buttons (Doğru vs Yanlış) */}
-      <div className="grid grid-cols-2 gap-4 sm:gap-6 w-full mt-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 w-full mt-4 sm:mt-6">
         {/* DOĞRU BUTTON */}
         <button
           onClick={() => handleChoice(true)}
           disabled={feedback !== null || isFinished}
-          className="group relative py-5 sm:py-6 px-6 rounded-3xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 active:scale-95 text-white font-black text-lg sm:text-xl shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-3 transition-all cursor-pointer border-2 border-emerald-400/40"
+          className="group relative py-3.5 sm:py-5 px-3 sm:px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 active:scale-95 text-white font-black text-base sm:text-xl shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 sm:gap-3 transition-all cursor-pointer border-2 border-emerald-400/40"
         >
-          <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-            <Check size={24} className="stroke-[3]" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+            <Check size={20} className="stroke-[3]" />
           </div>
           <span>DOĞRU</span>
         </button>
@@ -260,10 +305,10 @@ export const TrueFalseGame: React.FC<TrueFalseGameProps> = ({
         <button
           onClick={() => handleChoice(false)}
           disabled={feedback !== null || isFinished}
-          className="group relative py-5 sm:py-6 px-6 rounded-3xl bg-gradient-to-b from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 active:scale-95 text-white font-black text-lg sm:text-xl shadow-xl shadow-rose-500/25 flex items-center justify-center gap-3 transition-all cursor-pointer border-2 border-rose-400/40"
+          className="group relative py-3.5 sm:py-5 px-3 sm:px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 active:scale-95 text-white font-black text-base sm:text-xl shadow-xl shadow-rose-500/25 flex items-center justify-center gap-2 sm:gap-3 transition-all cursor-pointer border-2 border-rose-400/40"
         >
-          <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-            <X size={24} className="stroke-[3]" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+            <X size={20} className="stroke-[3]" />
           </div>
           <span>YANLIŞ</span>
         </button>

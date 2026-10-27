@@ -54,12 +54,12 @@ export const HERO_SLIDES: HeroSlide[] = [
   },
   {
     id: 3,
-    badge: 'Öğrenciler İçin',
-    title: 'Teslim etmek bu kadar kolay',
-    text: 'Fotoğraf çek, dosya yükle ya da yaz. Ödevin tek dokunuşla öğretmenine ulaşsın.',
+    badge: 'Mobil Öğrenci Deneyimi',
+    title: 'Öğrencileriniz Mobil Uygulamayla Katılsın',
+    text: 'Siz web panelinden ödev ve oyunları hazırlayın; öğrenciler mobil uygulamadan eğlenceli oyunlarla ödev teslim etsin.',
     primaryCta: {
-      text: 'Öğrenci Olarak Katıl',
-      href: '#ogrenci-katil',
+      text: 'Mobil Uygulamayı İncele',
+      href: '#mobile-app',
     },
     desktopImage: '/hero/slide-3.webp',
     mobileImage: '/hero/slide-3-mobile.webp',

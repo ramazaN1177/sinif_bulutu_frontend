@@ -28,9 +28,9 @@ const FAQS: FaqItem[] = [
       'Sağ üstteki "Etkinlik Üret" butonuna tıklayıp istediğiniz şablonu (Çarkıfelek, Test Quiz, Hafıza Kartları, Köstebek Vurmaca vb.) seçin. Kendi soru ve cevaplarınızı yazıp "Oluştur" dediğinizde 1 dakika içinde oyununuz sınıfa hazır hale gelir.',
   },
   {
-    question: 'Öğretmen ve öğrenci girişleri nasıl ayrılır?',
+    question: 'Sınıf Bulutu web sitesi kimler içindir?',
     answer:
-      'Giriş ekranında Öğretmen ve Öğrenci butonları ayrılmıştır. Öğretmenler sınıf kurma, oyun hazırlama ve ödev atama imkanına sahipken; öğrenciler sınıfa katılıp ödevlerini eğlenceli oyunlar şeklinde tamamlarlar.',
+      'Sınıf Bulutu web platformu yalnızca öğretmenlerimiz için tasarlanmıştır. Öğretmenler web üzerinden sınıflarını açar, etkinlik ve ödev üretir, akıllı tahtada oyunları yönetir. Öğrencilerimiz ise ödevlerine katılmak ve etkinlikleri tamamlamak için Sınıf Bulutu Mobil Uygulamasını (iOS & Android) kullanır.',
   },
 ];
 

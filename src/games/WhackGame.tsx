@@ -60,8 +60,41 @@ export const WhackGame: React.FC<WhackGameProps> = ({
   const currentItem = items[currentIdx] || items[0];
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for mobile backgrounding or tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      setIsPlaying(false);
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
+    };
+  }, []);
+
   const playSound = (type: 'pop' | 'hit' | 'wrong' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -140,7 +173,7 @@ export const WhackGame: React.FC<WhackGameProps> = ({
 
   // Spawn moles into random slots
   const spawnMoles = () => {
-    if (!isPlaying || isFinished) return;
+    if (!isPlaying || isFinished || document.hidden) return;
     const { correct, all } = getOptionsForQuestion();
 
     // Pick random slots for each option
@@ -178,6 +211,7 @@ export const WhackGame: React.FC<WhackGameProps> = ({
   useEffect(() => {
     if (!isPlaying || isFinished) return;
     const interval = setInterval(() => {
+      if (document.hidden) return;
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
@@ -195,7 +229,9 @@ export const WhackGame: React.FC<WhackGameProps> = ({
     if (!isPlaying || isFinished) return;
     spawnMoles();
     const interval = setInterval(() => {
-      spawnMoles();
+      if (!document.hidden) {
+        spawnMoles();
+      }
     }, 4000);
     return () => clearInterval(interval);
   }, [currentIdx, isPlaying, isFinished]);
@@ -331,7 +367,7 @@ export const WhackGame: React.FC<WhackGameProps> = ({
 
       {/* Meadow Playfield (Whack-a-Mole Ground) */}
       <div
-        className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-3xl overflow-hidden border-4 border-emerald-700/60 shadow-2xl flex flex-col justify-end p-4 sm:p-6"
+        className="relative w-full aspect-[4/3] sm:aspect-[16/9] min-h-[300px] sm:min-h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-emerald-700/60 shadow-2xl flex flex-col justify-end p-2 sm:p-6"
         style={{
           backgroundImage: 'url(/assets/whack_bg.jpg)',
           backgroundSize: 'cover',
@@ -342,17 +378,17 @@ export const WhackGame: React.FC<WhackGameProps> = ({
         <div className="absolute inset-0 bg-emerald-950/10 pointer-events-none" />
 
         {/* 6 Holes Grid in 2 Rows (3 per row) with Isometric Depth */}
-        <div className="relative z-10 grid grid-cols-3 gap-y-4 sm:gap-y-6 gap-x-3 sm:gap-x-6 w-full max-w-3xl mx-auto">
+        <div className="relative z-10 grid grid-cols-3 gap-y-2.5 sm:gap-y-6 gap-x-2 sm:gap-x-6 w-full max-w-3xl mx-auto">
           {slots.map((slot) => {
             return (
               <div
                 key={slot.id}
                 onClick={(e) => handleWhack(e, slot)}
-                className="relative flex flex-col items-center justify-end h-32 sm:h-40 cursor-pointer group select-none"
+                className="relative flex flex-col items-center justify-end h-24 sm:h-38 cursor-pointer group select-none"
               >
                 {/* Hole Graphic on Ground (Transparent PNG) */}
                 <div
-                  className="absolute bottom-0 w-28 sm:w-36 h-14 sm:h-18 bg-contain bg-no-repeat bg-center z-10 pointer-events-none drop-shadow-md"
+                  className="absolute bottom-0 w-20 sm:w-36 h-10 sm:h-18 bg-contain bg-no-repeat bg-center z-10 pointer-events-none drop-shadow-md"
                   style={{
                     backgroundImage: 'url(/assets/whack_hole.png)',
                   }}
@@ -363,16 +399,16 @@ export const WhackGame: React.FC<WhackGameProps> = ({
                   className={`relative z-20 flex flex-col items-center transition-all duration-300 transform ${
                     slot.isActive
                       ? slot.isHit
-                        ? 'translate-y-12 scale-90 opacity-40'
+                        ? 'translate-y-8 sm:translate-y-12 scale-90 opacity-40'
                         : slot.isWrongHit
-                        ? 'translate-y-2 rotate-6 scale-95'
+                        ? 'translate-y-1 rotate-6 scale-95'
                         : 'translate-y-0 scale-100 group-hover:scale-105'
-                      : 'translate-y-28 scale-75 opacity-0 pointer-events-none'
+                      : 'translate-y-20 sm:translate-y-28 scale-75 opacity-0 pointer-events-none'
                   }`}
                 >
                   {/* Answer Badge on Top of Mole's Helmet */}
                   <div
-                    className={`px-3 py-1.5 rounded-xl font-black text-xs sm:text-sm shadow-xl border-2 transition-all duration-200 -mb-2 z-30 flex items-center gap-1 ${
+                    className={`px-2 sm:px-3 py-0.5 sm:py-1.5 rounded-lg sm:rounded-xl font-black text-[10px] sm:text-xs shadow-xl border-2 transition-all duration-200 -mb-1.5 sm:-mb-2 z-30 flex items-center gap-1 ${
                       slot.isHit
                         ? 'bg-emerald-500 border-white text-white scale-110 shadow-emerald-500/50'
                         : slot.isWrongHit
@@ -380,13 +416,13 @@ export const WhackGame: React.FC<WhackGameProps> = ({
                         : 'bg-amber-400 hover:bg-amber-300 border-amber-600 text-slate-950 hover:scale-105'
                     }`}
                   >
-                    <span>{slot.text}</span>
-                    {slot.isHit && <CheckCircle2 size={14} className="text-white" />}
+                    <span className="line-clamp-1">{slot.text}</span>
+                    {slot.isHit && <CheckCircle2 size={12} className="text-white shrink-0" />}
                   </div>
 
                   {/* Mole Graphic Asset (Transparent PNG) */}
                   <div
-                    className="w-24 sm:w-28 h-24 sm:h-28 bg-contain bg-no-repeat bg-center drop-shadow-lg"
+                    className="w-16 sm:w-26 h-16 sm:h-26 bg-contain bg-no-repeat bg-center drop-shadow-lg"
                     style={{
                       backgroundImage: 'url(/assets/mole_char.png)',
                     }}

@@ -318,3 +318,29 @@
 .anim-marker {
   animation: preview-marker-sweep 1.4s ease-out infinite;
 }
+
+/* ================================================================= */
+/* 📱 Truly Fullscreen Edge-to-Edge Mobile Game Styles               */
+/* ================================================================= */
+.mobile-game-viewport {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  .mobile-game-stage > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  .mobile-game-stage > div > div {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+

@@ -182,10 +182,37 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
     spawnClouds();
   }, [currentIdx, isPlaying, isFinished, spawnClouds]);
 
-  // Cleanup animation on unmount
+  // Cleanup animation & audio on unmount
   useEffect(() => {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for backgrounding / tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      setIsPlaying(false);
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
     };
   }, []);
 
@@ -499,7 +526,7 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-3xl overflow-hidden border-4 border-sky-600/60 shadow-2xl p-4 sm:p-6 select-none touch-none cursor-crosshair"
+        className="relative w-full aspect-[4/3] sm:aspect-[16/9] min-h-[300px] sm:min-h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-sky-600/60 shadow-2xl p-2 sm:p-6 select-none touch-none cursor-crosshair"
         style={{
           backgroundImage: 'url(/assets/sky_bg.jpg)',
           backgroundSize: 'cover',

@@ -20,6 +20,7 @@ interface CategorizeGameProps {
   items: ActivityItem[];
   categories?: string[];
   boxColors?: Record<string, number>;
+  boxImages?: Record<string, string>;
   onFinish?: (score: number) => void;
   isEmbed?: boolean;
 }
@@ -43,6 +44,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
   items,
   categories: propsCategories,
   boxColors: propsBoxColors,
+  boxImages: propsBoxImages,
   onFinish,
   isEmbed = false,
 }) => {
@@ -82,6 +84,15 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
       setBoxColors(propsBoxColors);
     }
   }, [propsBoxColors]);
+
+  // Box image mapping: category -> image URL / base64
+  const [boxImages, setBoxImages] = useState<Record<string, string>>(() => propsBoxImages || {});
+
+  useEffect(() => {
+    if (propsBoxImages) {
+      setBoxImages(propsBoxImages);
+    }
+  }, [propsBoxImages]);
 
   const [ballRotation, setBallRotation] = useState(0);
 
@@ -223,6 +234,39 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
     setIsBallResetting(false);
     setActiveHoverBox(null);
     setActiveBasketInside(null);
+  }, []);
+
+  // Cleanup AudioContext on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for mobile backgrounding or tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      setIsPlaying(false);
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
+    };
   }, []);
 
   useEffect(() => {
@@ -591,8 +635,8 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
 
   return (
     <div
-      className={`relative w-full max-w-5xl mx-auto flex flex-col items-center select-none rounded-3xl overflow-hidden shadow-xl border border-blue-200/80 ${
-        isEmbed ? 'p-2' : 'p-4 sm:p-6'
+      className={`relative w-full max-w-4xl mx-auto flex flex-col items-center select-none rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-blue-200/80 ${
+        isEmbed ? 'p-1.5 sm:p-2' : 'p-2 sm:p-5'
       }`}
       style={{
         background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F7FF 40%, #E2EDFA 100%)',
@@ -603,53 +647,53 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
       <div className="absolute bottom-0 inset-x-0 h-44 bg-gradient-to-t from-amber-200/40 via-amber-100/10 to-transparent pointer-events-none" />
 
       {/* Top HUD Bar */}
-      <div className="w-full mb-3 p-3 sm:p-4 rounded-2xl bg-white/95 border border-slate-200 shadow-sm backdrop-blur-md flex items-center justify-between relative z-20 text-slate-800">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-500" />
+      <div className="w-full mb-2 p-2 sm:p-3.5 rounded-2xl bg-white/95 border border-slate-200 shadow-sm backdrop-blur-md flex items-center justify-between relative z-20 text-slate-800">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5">
+            <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
             <span className="text-xs font-black text-slate-600">
-              Skor: <strong className="text-slate-900 text-base">{score}</strong>
+              Skor: <strong className="text-slate-900 text-sm sm:text-base">{score}</strong>
             </span>
           </div>
 
           {streak > 1 && (
-            <div className="flex items-center gap-1 px-3 py-1 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 text-xs font-black anim-pulse-glow">
-              <Flame size={14} className="fill-orange-500 text-orange-500" />
-              <span>{streak}x Puan Serisi!</span>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg sm:rounded-xl bg-orange-50 text-orange-600 border border-orange-200 text-[11px] sm:text-xs font-black anim-pulse-glow">
+              <Flame size={12} className="fill-orange-500 text-orange-500" />
+              <span>{streak}x Seri!</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Timer className="w-5 h-5 text-blue-600" />
-          <span className="font-mono text-base font-black text-slate-900">{timeLeft}s</span>
+        <div className="flex items-center gap-1.5">
+          <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <span className="font-mono text-sm sm:text-base font-black text-slate-900">{timeLeft}s</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition-colors"
             title="Sesi Aç/Kapat"
           >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
           </button>
           <button
             onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition-colors"
             title="Yeniden Başlat"
           >
-            <RotateCcw size={16} />
+            <RotateCcw size={15} />
           </button>
         </div>
       </div>
 
       {/* Instructions / Progress */}
-      <div className="w-full flex items-center justify-between px-3 mb-2 text-xs font-bold text-slate-600 relative z-10">
-        <span className="flex items-center gap-1.5">
-          <Hand size={14} className="text-blue-600" />
-          <span>Topu tutun ve aşağıdaki doğru sepete bırakın (Fizik kurallarıyla düşer)</span>
+      <div className="w-full flex items-center justify-between px-2 mb-1.5 text-[11px] sm:text-xs font-bold text-slate-600 relative z-10">
+        <span className="flex items-center gap-1">
+          <Hand size={13} className="text-blue-600" />
+          <span className="truncate max-w-[220px] sm:max-w-none">Topu doğru sepete bırakın</span>
         </span>
-        <span className="bg-blue-50 border border-blue-200 text-blue-700 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold">
+        <span className="bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold shrink-0">
           Soru: {currentIdx + 1} / {shuffledItems.length}
         </span>
       </div>
@@ -657,7 +701,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
       {/* 🏀 Interactive Physics Stage (Ball at Top, Boxes at Bottom) */}
       <div
         ref={stageRef}
-        className="w-full relative z-10 flex flex-col justify-between min-h-[500px] sm:min-h-[540px] rounded-3xl border border-blue-200/80 overflow-hidden bg-gradient-to-b from-white/90 via-sky-50/40 to-amber-50/30 p-4 touch-none shadow-inner"
+        className="w-full relative z-10 flex flex-col justify-between min-h-[360px] sm:min-h-[460px] h-[52vh] sm:h-[58vh] max-h-[560px] rounded-2xl sm:rounded-3xl border border-blue-200/80 overflow-hidden bg-gradient-to-b from-white/90 via-sky-50/40 to-amber-50/30 p-2 sm:p-4 touch-none shadow-inner"
       >
         {/* Subtle drop guide / ceiling beam */}
         <div className="absolute top-0 inset-x-8 h-2 bg-gradient-to-r from-transparent via-sky-400/30 to-transparent rounded-full" />
@@ -689,14 +733,14 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
           }`}
         >
           {/* Subtle Ground / Drop Shadow below the ball */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-black/40 rounded-full blur-sm pointer-events-none" />
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-16 sm:w-24 h-3 sm:h-4 bg-black/40 rounded-full blur-sm pointer-events-none" />
 
           {/* 3D Realistic Orange Basketball with Authentic Curved Seams */}
           <div
-            className="relative w-28 sm:w-32 h-28 sm:h-32 rounded-full border-3 border-amber-950/80 shadow-2xl flex flex-col items-center justify-center p-2 text-center overflow-hidden transition-transform"
+            className="relative w-20 sm:w-28 h-20 sm:h-28 rounded-full border-2 sm:border-3 border-amber-950/80 shadow-2xl flex flex-col items-center justify-center p-1 sm:p-2 text-center overflow-hidden transition-transform"
             style={{
               background: 'radial-gradient(circle at 30% 25%, #FED7AA 0%, #FB923C 28%, #EA580C 60%, #9A3412 88%, #431407 100%)',
-              boxShadow: 'inset -10px -10px 18px rgba(0,0,0,0.6), inset 6px 6px 14px rgba(255,255,255,0.45), 0 16px 24px rgba(0,0,0,0.45)',
+              boxShadow: 'inset -8px -8px 14px rgba(0,0,0,0.6), inset 5px 5px 12px rgba(255,255,255,0.45), 0 12px 20px rgba(0,0,0,0.45)',
               transform: `rotate(${ballRotation}deg)`,
             }}
           >
@@ -707,15 +751,15 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
               style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.4))' }}
             >
               {/* Outer perimeter groove */}
-              <circle cx="50" cy="50" r="48.5" fill="none" stroke="#270b03" strokeWidth="2.5" opacity="0.8" />
+              <circle cx="50" cy="50" r="48.5" fill="none" stroke="#270b03" strokeWidth="2.2" opacity="0.8" />
               {/* Horizontal equator seam */}
-              <line x1="2" y1="50" x2="98" y2="50" stroke="#270b03" strokeWidth="2.8" />
+              <line x1="2" y1="50" x2="98" y2="50" stroke="#270b03" strokeWidth="2.4" />
               {/* Vertical meridian seam */}
-              <line x1="50" y1="2" x2="50" y2="98" stroke="#270b03" strokeWidth="2.8" />
+              <line x1="50" y1="2" x2="50" y2="98" stroke="#270b03" strokeWidth="2.4" />
               {/* Left iconic curved seam */}
-              <path d="M 18,8 C 42,32 42,68 18,92" fill="none" stroke="#270b03" strokeWidth="2.8" />
+              <path d="M 18,8 C 42,32 42,68 18,92" fill="none" stroke="#270b03" strokeWidth="2.4" />
               {/* Right iconic curved seam */}
-              <path d="M 82,8 C 58,32 58,68 82,92" fill="none" stroke="#270b03" strokeWidth="2.8" />
+              <path d="M 82,8 C 58,32 58,68 82,92" fill="none" stroke="#270b03" strokeWidth="2.4" />
             </svg>
 
             {/* Subtle Pebble Leather Sheen */}
@@ -723,12 +767,12 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
 
             {/* 🎯 Content on Top of the Ball (Text, Image, or Both) */}
             <div
-              className="relative z-10 max-w-[92%] flex flex-col items-center justify-center gap-1 p-1.5 rounded-xl bg-black/45 backdrop-blur-md border border-white/30 shadow-lg"
+              className="relative z-10 max-w-[94%] flex flex-col items-center justify-center gap-0.5 sm:gap-1 p-1 rounded-xl bg-black/50 backdrop-blur-md border border-white/30 shadow-lg"
               style={{ transform: `rotate(${-ballRotation}deg)` }}
             >
               {/* Image if present */}
               {currentItem.image && (
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg overflow-hidden bg-white/95 p-1 shadow-sm">
+                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-md sm:rounded-lg overflow-hidden bg-white/95 p-0.5 shadow-sm">
                   <img
                     src={currentItem.image}
                     alt={currentItem.question || 'Görsel'}
@@ -742,15 +786,15 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
 
               {/* Text question/word if present */}
               {currentItem.question && (
-                <span className="text-[11px] sm:text-xs font-black text-white leading-tight drop-shadow-md font-display text-center line-clamp-2">
+                <span className="text-[10px] sm:text-xs font-black text-white leading-tight drop-shadow-md font-display text-center line-clamp-2 px-0.5">
                   {currentItem.question}
                 </span>
               )}
 
               {/* Fallback if neither exists */}
               {!currentItem.question && !currentItem.image && (
-                <div className="text-white text-[11px] font-bold flex items-center gap-1">
-                  <ImageIcon size={13} />
+                <div className="text-white text-[10px] font-bold flex items-center gap-1">
+                  <ImageIcon size={11} />
                   <span>Öğe #{currentIdx + 1}</span>
                 </div>
               )}
@@ -759,9 +803,9 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
 
           {/* Drag instruction cue pill below ball when hovering at top */}
           {!isDragging && !isPhysicsActive && (
-            <div className="mt-1.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-white/20 text-[10px] font-extrabold text-amber-300 flex items-center gap-1 backdrop-blur-xs shadow-md animate-pulse">
-              <ArrowDown size={11} />
-              <span>Aşağıdaki Sepete Sürükle</span>
+            <div className="mt-1 px-2 py-0.5 rounded-full bg-slate-900/80 border border-white/20 text-[9px] sm:text-[10px] font-extrabold text-amber-300 flex items-center gap-1 backdrop-blur-xs shadow-md animate-pulse">
+              <ArrowDown size={10} />
+              <span>Sepete Bırak</span>
             </div>
           )}
         </div>
@@ -770,12 +814,12 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
         <div className="flex-1" />
 
         {/* 📦 2. Category Storage Boxes (Kutular / Sepetler) at the Bottom */}
-        <div className="w-full relative pb-2 pointer-events-none">
+        <div className="w-full relative pb-1 pointer-events-none">
           {/* Wooden Shelf / Gym Floor Surface */}
-          <div className="w-full h-3 rounded-full bg-gradient-to-r from-amber-800 via-amber-700 to-amber-900 border-t border-amber-500/40 shadow-lg mb-3" />
+          <div className="w-full h-2.5 sm:h-3 rounded-full bg-gradient-to-r from-amber-800 via-amber-700 to-amber-900 border-t border-amber-500/40 shadow-lg mb-2" />
 
           {/* Strictly Side-by-Side (flex-nowrap) Row of Baskets (Max 10) */}
-          <div className="flex flex-nowrap items-end justify-start sm:justify-center gap-3.5 sm:gap-5 overflow-x-auto pb-3 px-4 scrollbar-thin max-w-full mx-auto pointer-events-auto">
+          <div className="flex flex-nowrap items-end justify-start sm:justify-center gap-2.5 sm:gap-4 overflow-x-auto pb-2 px-2 sm:px-4 scrollbar-thin max-w-full mx-auto pointer-events-auto">
             {categories.slice(0, 10).map((cat, cIdx) => {
               const palIdx = boxColors[cat] ?? (cIdx % BOX_PALETTES.length);
               const style = BOX_PALETTES[palIdx] || BOX_PALETTES[0];
@@ -791,7 +835,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
                     else boxesRef.current.delete(cat);
                   }}
                   onClick={() => handleDirectBoxClick(cat)}
-                  className={`relative flex flex-col items-center shrink-0 w-32 sm:w-40 min-h-[175px] sm:min-h-[195px] select-none cursor-pointer transition-all duration-200 group ${
+                  className={`relative flex flex-col items-center shrink-0 w-24 sm:w-36 min-h-[135px] sm:min-h-[185px] select-none cursor-pointer transition-all duration-200 group ${
                     feedback === 'correct'
                       ? 'scale-105'
                       : feedback === 'wrong'
@@ -803,25 +847,25 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
                 >
                   {/* LAYER 1: BACK BASKET CAVITY (Behind Basketball - z-10) */}
                   <div
-                    className="absolute inset-0 z-10 rounded-b-[2.5rem] rounded-t-2xl overflow-hidden border-2 border-slate-700/40 flex flex-col items-center justify-between pointer-events-none shadow-lg"
+                    className="absolute inset-0 z-10 rounded-b-[2rem] sm:rounded-b-[2.5rem] rounded-t-xl sm:rounded-t-2xl overflow-hidden border-2 border-slate-700/40 flex flex-col items-center justify-between pointer-events-none shadow-lg"
                     style={{
                       background: `radial-gradient(ellipse at 50% 15%, ${style.inner}EE 0%, #0F172A 100%)`,
                       borderTopColor: style.rim,
-                      borderTopWidth: '4px',
+                      borderTopWidth: '3px',
                     }}
                   >
                     {/* Back Net Cross-Hatch Shadow */}
-                    <div className="w-full flex-1 opacity-25 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:12px_12px] mt-2" />
+                    <div className="w-full flex-1 opacity-25 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:10px_10px] mt-1.5" />
 
                     {/* Inner Floor Shadow */}
-                    <div className="w-16 h-3 rounded-full bg-black/60 blur-xs mb-2" />
+                    <div className="w-12 sm:w-16 h-2.5 rounded-full bg-black/60 blur-xs mb-1.5" />
                   </div>
 
                   {/* LAYER 2: THE BASKETBALL SITS HERE AT z-20 WHEN INSIDE BASKET */}
 
                   {/* LAYER 3: FRONT BASKET NET & CATEGORY PLAQUE (In Front of Basketball - z-30) */}
                   <div
-                    className={`relative z-30 w-full h-full min-h-[175px] sm:min-h-[195px] rounded-b-[2.5rem] rounded-t-2xl border-2 flex flex-col items-center justify-between p-2.5 sm:p-3 overflow-hidden pointer-events-none transition-all ${
+                    className={`relative z-30 w-full h-full min-h-[135px] sm:min-h-[185px] rounded-b-[2rem] sm:rounded-b-[2.5rem] rounded-t-xl sm:rounded-t-2xl border-2 flex flex-col items-center justify-between p-1.5 sm:p-2.5 overflow-hidden pointer-events-none transition-all ${
                       feedback === 'correct'
                         ? 'border-emerald-400 ring-4 ring-emerald-400/50 shadow-emerald-500/30 shadow-2xl'
                         : feedback === 'wrong'
@@ -834,7 +878,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
                       // Translucent front mesh gradient so the basketball is clearly visible inside!
                       background: `linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 25%, ${style.rim}28 50%, ${style.rim}55 100%)`,
                       borderTopColor: style.rim,
-                      borderTopWidth: '4px',
+                      borderTopWidth: '3px',
                     }}
                   >
 
@@ -845,43 +889,57 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
                       preserveAspectRatio="none"
                     >
                       <defs>
-                        <pattern id={weaveId} width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                          <line x1="0" y1="0" x2="0" y2="16" stroke="#FFFFFF" strokeWidth="2.2" />
-                          <line x1="0" y1="0" x2="16" y2="0" stroke="#000000" strokeWidth="1.6" />
+                        <pattern id={weaveId} width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                          <line x1="0" y1="0" x2="0" y2="14" stroke="#FFFFFF" strokeWidth="2" />
+                          <line x1="0" y1="0" x2="14" y2="0" stroke="#000000" strokeWidth="1.4" />
                         </pattern>
                       </defs>
                       <rect width="100" height="120" fill={`url(#${weaveId})`} />
-                      <path d="M 0,26 Q 50,38 100,26" fill="none" stroke="#FFFFFF" strokeWidth="2.5" opacity="0.7" />
-                      <path d="M 4,60 Q 50,74 96,60" fill="none" stroke="#FFFFFF" strokeWidth="2.5" opacity="0.7" />
-                      <path d="M 8,94 Q 50,105 92,94" fill="none" stroke="#FFFFFF" strokeWidth="2.5" opacity="0.7" />
+                      <path d="M 0,26 Q 50,38 100,26" fill="none" stroke="#FFFFFF" strokeWidth="2.2" opacity="0.7" />
+                      <path d="M 4,60 Q 50,74 96,60" fill="none" stroke="#FFFFFF" strokeWidth="2.2" opacity="0.7" />
+                      <path d="M 8,94 Q 50,105 92,94" fill="none" stroke="#FFFFFF" strokeWidth="2.2" opacity="0.7" />
                     </svg>
 
-                    {/* 3. Category Plaque / Sepet İsimliği */}
-                    <div className="relative z-30 w-full max-w-[94%] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm text-center text-white bg-slate-950/80 backdrop-blur-md border border-white/35 shadow-lg truncate my-auto tracking-wide pointer-events-auto">
-                      {cat}
-                    </div>
+                    {/* 3. Category Plaque / Sepet İsimliği & Görsel */}
+                    {(() => {
+                      const boxImg = boxImages[cat];
+                      return (
+                        <div className="relative z-30 w-full max-w-[96%] py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-lg sm:rounded-xl font-black text-[10px] sm:text-xs text-center text-white bg-slate-950/85 backdrop-blur-md border border-white/35 shadow-lg my-auto tracking-wide pointer-events-auto flex flex-col items-center justify-center gap-0.5 sm:gap-1">
+                          {boxImg && (
+                            <div className="w-7 h-7 sm:w-11 sm:h-11 rounded-md sm:rounded-lg overflow-hidden border border-white/40 shadow-xs shrink-0">
+                              <img
+                                src={boxImg}
+                                alt={cat}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <span className="truncate max-w-full">{cat}</span>
+                        </div>
+                      );
+                    })()}
 
                     {/* 4. Bottom Reinforced Foot */}
                     <div
-                      className="w-14 sm:w-18 h-1.5 rounded-full z-30 shadow-sm"
+                      className="w-10 sm:w-16 h-1 sm:h-1.5 rounded-full z-30 shadow-sm"
                       style={{ backgroundColor: style.rim }}
                     />
 
                     {/* Interactive Feedback Icons */}
                     {feedback === 'correct' && (
-                      <div className="absolute inset-0 bg-emerald-500/25 backdrop-blur-xs rounded-b-[2.5rem] rounded-t-2xl flex items-center justify-center animate-scale-in z-30">
-                        <CheckCircle2 size={46} className="text-emerald-500 stroke-[3] drop-shadow-md" />
+                      <div className="absolute inset-0 bg-emerald-500/25 backdrop-blur-xs rounded-b-[2rem] sm:rounded-b-[2.5rem] rounded-t-xl sm:rounded-t-2xl flex items-center justify-center animate-scale-in z-30">
+                        <CheckCircle2 size={36} className="text-emerald-500 stroke-[3] drop-shadow-md" />
                       </div>
                     )}
                     {feedback === 'wrong' && (
-                      <div className="absolute inset-0 bg-rose-500/25 backdrop-blur-xs rounded-b-[2.5rem] rounded-t-2xl flex items-center justify-center animate-scale-in z-30">
-                        <XCircle size={46} className="text-rose-500 stroke-[3] drop-shadow-md" />
+                      <div className="absolute inset-0 bg-rose-500/25 backdrop-blur-xs rounded-b-[2rem] sm:rounded-b-[2.5rem] rounded-t-xl sm:rounded-t-2xl flex items-center justify-center animate-scale-in z-30">
+                        <XCircle size={36} className="text-rose-500 stroke-[3] drop-shadow-md" />
                       </div>
                     )}
                   </div>
 
                   {/* Soft Ground Shadow Under Each Basket */}
-                  <div className="w-24 sm:w-28 h-2.5 bg-amber-950/30 rounded-full blur-xs mx-auto -mt-1 pointer-events-none" />
+                  <div className="w-20 sm:w-26 h-2 bg-amber-950/30 rounded-full blur-xs mx-auto -mt-1 pointer-events-none" />
                 </div>
               );
             })}

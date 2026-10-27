@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Trophy, CheckCircle2, XCircle, RotateCcw, Volume2, VolumeX, Flame } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
@@ -71,10 +71,30 @@ export const QuizGame: React.FC<QuizGameProps> = ({
     return () => clearInterval(timer);
   }, [timeLeft, isAnswered, isGameOver]);
 
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Cleanup AudioContext on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
   const playSound = (isCorrect: boolean) => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -180,13 +200,26 @@ export const QuizGame: React.FC<QuizGameProps> = ({
       {!isGameOver && currentItem ? (
         <div className="w-full">
           {/* Question Card */}
-          <div className="p-8 mb-6 rounded-3xl bg-white border-2 border-blue-100 shadow-xl text-center">
+          <div className="p-6 sm:p-8 mb-6 rounded-3xl bg-white border-2 border-blue-100 shadow-xl text-center">
             <span className="inline-block px-3 py-1 mb-3 text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 rounded-full border border-blue-200">
               Soru {currentIndex + 1}
             </span>
-            <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-relaxed">
-              {currentItem.question}
-            </h3>
+
+            {currentItem.image && (
+              <div className="max-w-xs mx-auto mb-4 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 p-1.5 shadow-sm">
+                <img
+                  src={currentItem.image}
+                  alt={currentItem.question || 'Soru Görseli'}
+                  className="w-full max-h-48 object-contain rounded-xl mx-auto"
+                />
+              </div>
+            )}
+
+            {currentItem.question && (
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-relaxed">
+                {currentItem.question}
+              </h3>
+            )}
           </div>
 
           {/* Options Grid */}
@@ -211,13 +244,13 @@ export const QuizGame: React.FC<QuizGameProps> = ({
                   key={idx}
                   onClick={() => handleAnswer(opt)}
                   disabled={isAnswered}
-                  className={`p-5 rounded-2xl text-left font-bold text-base sm:text-lg border transition-all flex items-center justify-between shadow-md cursor-pointer ${btnStyle}`}
+                  className={`p-3.5 sm:p-5 rounded-xl sm:rounded-2xl text-left font-bold text-sm sm:text-lg border transition-all flex items-center justify-between shadow-md cursor-pointer ${btnStyle}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center text-sm font-black text-white">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-black/20 flex items-center justify-center text-xs sm:text-sm font-black text-white shrink-0">
                       {String.fromCharCode(65 + idx)}
                     </span>
-                    <span>{opt}</span>
+                    <span className="break-words">{opt}</span>
                   </div>
                   {isAnswered && isCorrectAnswer && (
                     <CheckCircle2 className="w-6 h-6 text-white shrink-0 ml-2" />

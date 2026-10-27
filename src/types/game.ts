@@ -20,7 +20,8 @@ export interface ActivityItem {
   question?: string; // Text can be optional if image is provided
   answer: string;    // Target category, solution, or correct option
   options?: string[]; // for quiz
-  image?: string;    // Image URL, base64 data, or illustration
+  image?: string;    // Image URL, base64 data, or illustration for question
+  answerImage?: string; // Image for answer/target if applicable
   category?: string; // Explicit category if used
 }
 
@@ -36,6 +37,7 @@ export interface Activity {
   maxScore?: number;
   categories?: string[];
   boxColors?: Record<string, number>;
+  boxImages?: Record<string, string>; // Category/Basket image mapping: category -> image URL/Base64
   creatorName?: string;
   playCount: number;
 }

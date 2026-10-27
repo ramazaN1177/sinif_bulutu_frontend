@@ -96,14 +96,14 @@ export const BoxGame: React.FC<BoxGameProps> = ({
       </div>
 
       {/* Boxes Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 w-full">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 w-full">
         {items.map((item, idx) => {
           const isOpened = openedBoxIds.includes(item.id);
           return (
             <button
               key={item.id}
               onClick={() => handleOpenBox(item)}
-              className={`aspect-square rounded-3xl p-4 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 border-2 cursor-pointer ${
+              className={`aspect-square rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 border-2 cursor-pointer ${
                 isOpened
                   ? 'bg-slate-100 border-slate-200 opacity-60 scale-95'
                   : 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-700 border-amber-300 hover:border-amber-200 shadow-lg hover:-translate-y-1.5 hover:shadow-orange-500/30 active:scale-95'
@@ -112,20 +112,20 @@ export const BoxGame: React.FC<BoxGameProps> = ({
               {/* Ribbon cross pattern */}
               {!isOpened && (
                 <>
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2.5 bg-yellow-300/40 pointer-events-none" />
-                  <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-2.5 bg-yellow-300/40 pointer-events-none" />
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 sm:h-2.5 bg-yellow-300/40 pointer-events-none" />
+                  <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-2 sm:w-2.5 bg-yellow-300/40 pointer-events-none" />
                 </>
               )}
 
-              <div className="w-14 h-14 rounded-2xl bg-black/25 backdrop-blur-xs flex items-center justify-center mb-2 text-2xl font-black text-white shadow-inner relative z-10 border border-white/20">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-black/25 backdrop-blur-xs flex items-center justify-center mb-1 sm:mb-2 text-xl sm:text-2xl font-black text-white shadow-inner relative z-10 border border-white/20">
                 {idx + 1}
               </div>
-              <span className={`text-xs font-black tracking-wider uppercase relative z-10 ${isOpened ? 'text-slate-500' : 'text-white'}`}>
+              <span className={`text-[11px] sm:text-xs font-black tracking-wider uppercase relative z-10 ${isOpened ? 'text-slate-500' : 'text-white'}`}>
                 {isOpened ? 'Açıldı' : 'Kutu'}
               </span>
               {!isOpened && (
-                <div className="absolute top-2.5 right-2.5 z-10">
-                  <Sparkles size={16} className="text-yellow-200 animate-pulse" />
+                <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10">
+                  <Sparkles size={14} className="text-yellow-200 animate-pulse" />
                 </div>
               )}
             </button>
@@ -228,13 +228,33 @@ export const BoxGame: React.FC<BoxGameProps> = ({
             <span className="text-xs font-bold uppercase tracking-widest text-blue-600 block mb-2">
               Kutu İçeriği
             </span>
-            <p className="text-2xl font-black text-slate-900 mb-6 leading-relaxed">
-              {activeItem.question}
-            </p>
+            {activeItem.image && (
+              <div className="mb-4 max-h-48 max-w-full overflow-hidden rounded-2xl border border-slate-200 shadow-md">
+                <img
+                  src={activeItem.image}
+                  alt={activeItem.question || 'Kutu görseli'}
+                  className="max-h-48 w-auto object-contain mx-auto"
+                />
+              </div>
+            )}
+            {activeItem.question && (
+              <p className="text-2xl font-black text-slate-900 mb-6 leading-relaxed">
+                {activeItem.question}
+              </p>
+            )}
 
             {showAnswer ? (
               <div className="p-4 mb-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-lg font-bold animate-fade-in">
-                Cevap: {activeItem.answer}
+                {activeItem.answerImage && (
+                  <div className="mb-3 max-h-40 max-w-full overflow-hidden rounded-xl border border-emerald-200">
+                    <img
+                      src={activeItem.answerImage}
+                      alt={activeItem.answer || 'Cevap görseli'}
+                      className="max-h-40 w-auto object-contain mx-auto"
+                    />
+                  </div>
+                )}
+                {activeItem.answer && <div>Cevap: {activeItem.answer}</div>}
               </div>
             ) : (
               <button

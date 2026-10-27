@@ -42,7 +42,7 @@ export const DragWordGame: React.FC<DragWordGameProps> = ({
   const [options, setOptions] = useState<string[]>([]);
 
   const playSound = (type: 'place' | 'correct' | 'wrong' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -94,6 +94,35 @@ export const DragWordGame: React.FC<DragWordGameProps> = ({
       // Audio fallback
     }
   };
+
+  useEffect(() => {
+    const handleSilence = () => {
+      if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+        audioCtxRef.current.suspend().catch(() => {});
+      }
+      setIsPlaying(false);
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        handleSilence();
+      }
+    };
+
+    window.addEventListener('app_pause_audio', handleSilence);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('app_pause_audio', handleSilence);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (audioCtxRef.current) {
+        try {
+          audioCtxRef.current.close().catch(() => {});
+        } catch {}
+        audioCtxRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const correct = currentItem.answer;

@@ -78,7 +78,7 @@ export const Footer: React.FC = () => {
             <li><a href="#mobile-app" className="hover:text-blue-600 flex items-center gap-1.5"><Smartphone size={14} /> Mobil Uygulama (iOS / Android)</a></li>
             <li><a href="#features" className="hover:text-blue-600 flex items-center gap-1.5"><Monitor size={14} /> Akıllı Tahta Desteği</a></li>
             <li><a href="#how-it-works" className="hover:text-blue-600">Nasıl Etkinlik Oluşturulur?</a></li>
-            <li><a href="#features" className="hover:text-blue-600">Öğretmen & Öğrenci Girişi</a></li>
+            <li><a href="#features" className="hover:text-blue-600">Öğretmen Girişi</a></li>
           </ul>
         </div>
 

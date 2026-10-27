@@ -184,9 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 {currentView === 'dashboard'
-                  ? currentUser?.role === 'teacher'
-                    ? 'Öğretmen Yönetim Paneli'
-                    : 'Öğrenci Öğrenme Paneli'
+                  ? 'Öğretmen Yönetim Paneli'
                   : 'Dijital Eğitim & Etkinlik Platformu'}
               </span>
             </div>

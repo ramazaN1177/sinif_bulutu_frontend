@@ -56,8 +56,41 @@ export const BalloonGame: React.FC<BalloonGameProps> = ({
   const currentItem = items[currentIdx] || items[0];
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for mobile backgrounding or tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      setIsPlaying(false);
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
+    };
+  }, []);
+
   const playSound = (type: 'pop' | 'wrong' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -268,26 +301,26 @@ export const BalloonGame: React.FC<BalloonGameProps> = ({
       </div>
 
       {/* Balloon Playfield */}
-      <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-3xl overflow-hidden border-4 border-fuchsia-300 shadow-xl p-4 sm:p-6 bg-gradient-to-b from-sky-100 via-sky-50 to-indigo-50 flex items-center justify-around">
+      <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] min-h-[300px] sm:min-h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 shadow-xl p-2 sm:p-6 bg-gradient-to-b from-sky-100 via-sky-50 to-indigo-50 flex items-center justify-around">
         {/* Soft floating stars & particles background */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-fuchsia-900/20 via-transparent to-transparent pointer-events-none" />
 
         {/* 4 Floating Balloons */}
-        <div className="relative z-10 w-full h-full flex items-center justify-around px-2 sm:px-6">
+        <div className="relative z-10 w-full h-full flex items-center justify-around px-1 sm:px-6">
           {balloons.map((balloon) => {
             if (balloon.isPopped) {
               return (
                 <div
                   key={balloon.id}
-                  className="w-24 sm:w-32 h-36 sm:h-44 flex items-center justify-center opacity-40 scale-75 transition-all duration-300 pointer-events-none"
+                  className="w-18 sm:w-32 h-28 sm:h-44 flex items-center justify-center opacity-40 scale-75 transition-all duration-300 pointer-events-none"
                 >
                   {balloon.isCorrect ? (
-                    <div className="p-3 rounded-full bg-emerald-500 text-white animate-scale-in">
-                      <CheckCircle2 size={32} />
+                    <div className="p-2 sm:p-3 rounded-full bg-emerald-500 text-white animate-scale-in">
+                      <CheckCircle2 size={24} className="sm:w-8 sm:h-8" />
                     </div>
                   ) : (
-                    <div className="p-3 rounded-full bg-rose-500 text-white animate-scale-in">
-                      <XCircle size={32} />
+                    <div className="p-2 sm:p-3 rounded-full bg-rose-500 text-white animate-scale-in">
+                      <XCircle size={24} className="sm:w-8 sm:h-8" />
                     </div>
                   )}
                 </div>
@@ -302,14 +335,14 @@ export const BalloonGame: React.FC<BalloonGameProps> = ({
               >
                 {/* Balloon Body */}
                 <div
-                  className={`w-24 sm:w-32 h-32 sm:h-40 rounded-[50%_50%_50%_50%/40%_40%_60%_60%] bg-gradient-to-tr ${balloon.gradient} border-2 shadow-xl shadow-fuchsia-950/50 flex items-center justify-center p-3 text-center relative overflow-hidden`}
+                  className={`w-18 sm:w-32 h-26 sm:h-40 rounded-[50%_50%_50%_50%/40%_40%_60%_60%] bg-gradient-to-tr ${balloon.gradient} border-2 shadow-xl shadow-fuchsia-950/50 flex items-center justify-center p-2 sm:p-3 text-center relative overflow-hidden`}
                 >
                   {/* Glossy Balloon Highlight */}
-                  <div className="absolute top-3 left-4 w-6 h-10 rounded-full bg-white/40 rotate-[-25deg] filter blur-[0.5px] pointer-events-none" />
+                  <div className="absolute top-2 sm:top-3 left-3 sm:left-4 w-4 sm:w-6 h-6 sm:h-10 rounded-full bg-white/40 rotate-[-25deg] filter blur-[0.5px] pointer-events-none" />
 
                   {/* Answer Text on Balloon */}
                   <span
-                    className="relative z-10 font-black text-white text-xs sm:text-sm tracking-tight leading-tight select-none drop-shadow-md"
+                    className="relative z-10 font-black text-white text-[11px] sm:text-sm tracking-tight leading-tight select-none drop-shadow-md line-clamp-3 px-1"
                     style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
                   >
                     {balloon.text}
@@ -317,8 +350,8 @@ export const BalloonGame: React.FC<BalloonGameProps> = ({
                 </div>
 
                 {/* Balloon Knot and String */}
-                <div className="w-3 h-2 bg-current rounded-sm -mt-0.5 opacity-80" />
-                <div className="w-0.5 h-10 sm:h-14 bg-white/30 rounded-full -mt-0.5" />
+                <div className="w-2.5 h-1.5 bg-current rounded-sm -mt-0.5 opacity-80" />
+                <div className="w-0.5 h-6 sm:h-14 bg-white/30 rounded-full -mt-0.5" />
               </div>
             );
           })}

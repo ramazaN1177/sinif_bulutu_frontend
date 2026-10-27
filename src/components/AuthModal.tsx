@@ -31,7 +31,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
-  const [role, setRole] = useState<'teacher' | 'student'>('teacher');
+  // Web application is strictly for teachers; students use the mobile app
+  const role: 'teacher' = 'teacher';
   const [showTestAccounts, setShowTestAccounts] = useState(false);
 
   // Form states
@@ -44,7 +45,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isTeacher = role === 'teacher';
+  const isTeacher = true;
 
   // REAL GOOGLE LOGIN via @react-oauth/google (opens official Google Account Picker popup)
   const triggerGoogleLogin = useGoogleLogin({
@@ -65,17 +66,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const googleUser = await userInfoRes.json();
 
-        // 2. Send verified Google profile to backend /auth/google
+        // 2. Send verified Google profile to backend /auth/google as teacher
         const user = await authService.googleAuth({
           email: googleUser.email,
-          firstName: googleUser.given_name || googleUser.name || 'Kullanıcı',
+          firstName: googleUser.given_name || googleUser.name || 'Öğretmen',
           lastName: googleUser.family_name || '',
           avatarUrl: googleUser.picture,
           googleId: googleUser.sub,
           role,
         });
 
-        setMessage(`Hoş geldiniz ${user.firstName}! Google ile giriş yapıldı.`);
+        setMessage(`Hoş geldiniz ${user.firstName}! Öğretmen portalına giriş yapıldı.`);
         setTimeout(() => {
           if (onSuccess) onSuccess();
           onClose();
@@ -94,32 +95,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     },
   });
 
-  // Quick preset accounts matching mobile app for instant verification
-  const quickAccounts = isTeacher
-    ? [
-        {
-          name: 'Ahmet Yılmaz',
-          email: 'ahmet.ogretmen@gmail.com',
-          avatarColor: 'bg-blue-600',
-        },
-        {
-          name: 'Zeynep Demir',
-          email: 'zeynep.hoca@gmail.com',
-          avatarColor: 'bg-purple-600',
-        },
-      ]
-    : [
-        {
-          name: 'Ali Kaya',
-          email: 'ali.ogrenci@gmail.com',
-          avatarColor: 'bg-emerald-600',
-        },
-        {
-          name: 'Ayşe Çelik',
-          email: 'ayse.ogrenci@gmail.com',
-          avatarColor: 'bg-amber-600',
-        },
-      ];
+  // Teacher preset accounts for instant testing
+  const quickAccounts = [
+    {
+      name: 'Ahmet Yılmaz',
+      email: 'ahmet.ogretmen@gmail.com',
+      avatarColor: 'bg-blue-600',
+    },
+    {
+      name: 'Zeynep Demir',
+      email: 'zeynep.hoca@gmail.com',
+      avatarColor: 'bg-purple-600',
+    },
+  ];
 
   const handleStandardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,9 +129,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           password,
           firstName,
           lastName,
-          role,
+          role: 'teacher',
         });
-        setMessage(`Hesabınız oluşturuldu ${user.firstName}! Giriş yapıldı.`);
+        setMessage(`Öğretmen hesabınız oluşturuldu ${user.firstName}! Giriş yapıldı.`);
         setTimeout(() => {
           if (onSuccess) onSuccess();
           onClose();
@@ -163,7 +151,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setMessage(null);
 
     const parts = acc.name.split(' ');
-    const fName = parts[0] || 'Kullanıcı';
+    const fName = parts[0] || 'Öğretmen';
     const lName = parts.slice(1).join(' ') || '';
 
     try {
@@ -171,7 +159,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         email: acc.email,
         firstName: fName,
         lastName: lName,
-        role,
+        role: 'teacher',
       });
 
       setMessage(`Hoş geldiniz ${user.firstName}! Giriş başarılı.`);
@@ -204,43 +192,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             alt="Sınıf Bulutu"
             className="w-14 h-14 object-contain mb-3 drop-shadow-sm"
           />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-black mb-2 shadow-xs">
+            <School size={14} className="text-blue-600" />
+            <span>Öğretmen Portalı</span>
+          </div>
           <h2 className="text-2xl font-black text-slate-900 font-display">
-            {mode === 'login' ? 'Sınıf Bulutu Giriş' : 'Hesap Oluştur'}
+            {mode === 'login' ? 'Öğretmen Girişi' : 'Öğretmen Hesabı Oluştur'}
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            {isTeacher
-              ? 'Öğretmen portalı: Sınıflar, ödevler ve etkileşimli oyunlar'
-              : 'Öğrenci portalı: Ödevlerinizi teslim edin ve oyunları oynayın'}
+          <p className="text-xs text-slate-500 mt-1 max-w-xs">
+            Sınıflarınızı yönetin, ödevler tanımlayın ve akıllı tahtaya uygun interaktif oyunlar üretin.
           </p>
-        </div>
-
-        {/* Role Switcher (Matching Mobile App Segmented Tabs) */}
-        <div className="flex items-center p-1 rounded-2xl bg-slate-100 border border-slate-200 mb-5">
-          <button
-            type="button"
-            onClick={() => setRole('teacher')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              isTeacher
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <School size={16} />
-            <span>Öğretmen</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setRole('student')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              !isTeacher
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <GraduationCap size={16} />
-            <span>Öğrenci</span>
-          </button>
         </div>
 
         {/* Success Alert */}
@@ -454,6 +415,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </p>
           )}
+        </div>
+
+        {/* Student Mobile App Redirection Notice */}
+        <div className="mt-5 p-3 rounded-2xl bg-amber-50/80 border border-amber-200/80 flex items-start gap-2.5 text-left">
+          <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+            <GraduationCap size={16} />
+          </div>
+          <div className="text-[11px] leading-relaxed text-amber-900 flex-1">
+            <strong className="block font-bold text-amber-950 mb-0.5">
+              Öğrenci misiniz?
+            </strong>
+            <span>
+              Sınıf Bulutu web platformu yalnızca öğretmenlerimiz içindir. Öğrencilerimiz ödevlerine katılmak ve etkinlikleri oynamak için{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  const el = document.getElementById('mobile-app');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="font-bold text-blue-600 underline hover:text-blue-800 cursor-pointer"
+              >
+                mobil uygulamamızı
+              </button>
+              {' '}kullanmalıdır.
+            </span>
+          </div>
         </div>
       </div>
     </div>

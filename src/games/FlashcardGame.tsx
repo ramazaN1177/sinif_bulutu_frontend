@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import {
   Trophy,
@@ -34,8 +34,40 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
   const currentItem = items[currentIdx] || items[0];
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for mobile backgrounding or tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
+    };
+  }, []);
+
   const playSound = (type: 'flip' | 'known' | 'review' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -186,7 +218,7 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
       {/* 3D Flip Card Container */}
       <div
         onClick={handleFlip}
-        className="w-full h-80 sm:h-96 cursor-pointer group perspective-1000 mb-6 select-none"
+        className="w-full min-h-[260px] h-[48vh] max-h-[380px] sm:h-96 cursor-pointer group perspective-1000 mb-6 select-none"
         style={{ perspective: 1000, WebkitPerspective: 1000 }}
       >
         <div
@@ -200,7 +232,7 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
         >
           {/* FRONT OF CARD (Question / Term) */}
           <div
-            className="absolute inset-0 backface-hidden rounded-3xl p-8 bg-gradient-to-br from-white via-slate-50 to-slate-100 border-2 border-slate-200 flex flex-col justify-between items-center text-center shadow-lg group-hover:border-blue-400 transition-colors"
+            className="absolute inset-0 backface-hidden rounded-3xl p-4 sm:p-8 bg-gradient-to-br from-white via-slate-50 to-slate-100 border-2 border-slate-200 flex flex-col justify-between items-center text-center shadow-lg group-hover:border-blue-400 transition-colors"
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
@@ -214,10 +246,21 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
               </span>
             </div>
 
-            <div className="my-auto px-4">
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 font-display leading-relaxed">
-                {currentItem.question}
-              </h3>
+            <div className="my-auto px-4 flex flex-col items-center justify-center gap-3 max-h-[70%]">
+              {currentItem.image && (
+                <div className="w-24 h-24 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-white border border-slate-200/80 p-2 shadow-sm shrink-0">
+                  <img
+                    src={currentItem.image}
+                    alt={currentItem.question || 'Kart Görseli'}
+                    className="w-full h-full object-contain pointer-events-none"
+                  />
+                </div>
+              )}
+              {currentItem.question && (
+                <h3 className="text-xl sm:text-3xl font-black text-slate-900 font-display leading-relaxed line-clamp-3">
+                  {currentItem.question}
+                </h3>
+              )}
             </div>
 
             <span className="text-xs font-bold text-slate-400">
@@ -227,7 +270,7 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
 
           {/* BACK OF CARD (Answer / Definition) */}
           <div
-            className="absolute inset-0 backface-hidden rounded-3xl p-8 bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white flex flex-col justify-between items-center text-center shadow-xl border-2 border-blue-400"
+            className="absolute inset-0 backface-hidden rounded-3xl p-4 sm:p-8 bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white flex flex-col justify-between items-center text-center shadow-xl border-2 border-blue-400"
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
@@ -239,10 +282,21 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
               <span className="bg-white/10 px-2.5 py-1 rounded-full">Doğru Cevap</span>
             </div>
 
-            <div className="my-auto px-4">
-              <h3 className="text-2xl sm:text-3xl font-black text-white font-display leading-relaxed">
-                {currentItem.answer}
-              </h3>
+            <div className="my-auto px-4 flex flex-col items-center justify-center gap-3 max-h-[70%]">
+              {currentItem.answerImage && (
+                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-white/10 border border-white/20 p-2 shadow-sm shrink-0">
+                  <img
+                    src={currentItem.answerImage}
+                    alt={currentItem.answer || 'Cevap Görseli'}
+                    className="w-full h-full object-contain pointer-events-none"
+                  />
+                </div>
+              )}
+              {currentItem.answer && (
+                <h3 className="text-xl sm:text-3xl font-black text-white font-display leading-relaxed line-clamp-3">
+                  {currentItem.answer}
+                </h3>
+              )}
             </div>
 
             <span className="text-xs font-medium text-blue-200/80">

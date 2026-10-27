@@ -44,8 +44,41 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
 
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for mobile backgrounding or tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      setIsPlaying(false);
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
+    };
+  }, []);
+
   const playSound = (type: 'select' | 'found' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -299,8 +332,8 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
       </div>
 
       {/* Letter Grid Matrix */}
-      <div className="p-3 sm:p-5 rounded-3xl bg-white border-4 border-emerald-300 shadow-xl flex flex-col items-center">
-        <div className="grid grid-cols-9 gap-1.5 sm:gap-2">
+      <div className="p-2 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border-2 sm:border-4 border-emerald-300 shadow-xl flex flex-col items-center max-w-full overflow-x-auto">
+        <div className="grid grid-cols-9 gap-1 sm:gap-2">
           {grid.map((row, r) =>
             row.map((char, c) => {
               const isSelected = selectedCells.some((cell) => cell.r === r && cell.c === c);
@@ -309,7 +342,7 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
                 <button
                   key={`${r}_${c}`}
                   onClick={() => handleCellClick(r, c)}
-                  className={`w-8 h-8 sm:w-11 sm:h-11 rounded-xl font-black text-sm sm:text-base flex items-center justify-center cursor-pointer transition-all duration-150 select-none ${
+                  className={`w-7 h-7 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl font-black text-xs sm:text-base flex items-center justify-center cursor-pointer transition-all duration-150 select-none ${
                     isSelected
                       ? 'bg-gradient-to-tr from-amber-400 to-amber-300 text-slate-900 scale-105 shadow-md ring-2 ring-amber-400'
                       : 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200 active:scale-95'

@@ -196,8 +196,8 @@ export const SAMPLE_ACTIVITIES: Activity[] = [
     gradeLevel: '4-5. Sınıf',
     playCount: 5120,
     items: [
-      { id: '1', question: 'Apple', answer: 'Elma' },
-      { id: '2', question: 'Book', answer: 'Kitap' },
+      { id: '1', question: 'Apple', answer: 'Elma', image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&auto=format&fit=crop&q=80' },
+      { id: '2', question: 'Book', answer: 'Kitap', image: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400&auto=format&fit=crop&q=80' },
       { id: '3', question: 'School', answer: 'Okul' },
       { id: '4', question: 'Teacher', answer: 'Öğretmen' },
       { id: '5', question: 'Friend', answer: 'Arkadaş' },
@@ -211,13 +211,19 @@ export const SAMPLE_ACTIVITIES: Activity[] = [
     subject: 'Fen Bilimleri',
     gradeLevel: '4. Sınıf',
     playCount: 4320,
+    categories: ['Katı', 'Sıvı', 'Gaz'],
+    boxImages: {
+      'Katı': 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?w=400&auto=format&fit=crop&q=80',
+      'Sıvı': 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=400&auto=format&fit=crop&q=80',
+      'Gaz': 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&auto=format&fit=crop&q=80',
+    },
     items: [
-      { id: '1', question: 'Buz', answer: 'Katı' },
-      { id: '2', question: 'Su', answer: 'Sıvı' },
+      { id: '1', question: 'Buz', answer: 'Katı', image: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?w=400&auto=format&fit=crop&q=80' },
+      { id: '2', question: 'Su', answer: 'Sıvı', image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=400&auto=format&fit=crop&q=80' },
       { id: '3', question: 'Su Buharı', answer: 'Gaz' },
       { id: '4', question: 'Demir Çivi', answer: 'Katı' },
       { id: '5', question: 'Zeytinyağı', answer: 'Sıvı' },
-      { id: '6', question: 'Helyum', answer: 'Gaz' },
+      { id: '6', question: 'Helyum', answer: 'Gaz', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&auto=format&fit=crop&q=80' },
     ],
   },
   {
@@ -532,8 +538,8 @@ export const TemplateGrid: React.FC<TemplateGridProps> = ({
         </div>
       </div>
 
-      {/* Filter Pills with Counts */}
-      <div className="flex flex-wrap items-center gap-2 mb-10">
+      {/* Filter Pills with Counts (Horizontally scrollable on mobile with touch swiping) */}
+      <div className="flex items-center gap-2 mb-8 sm:mb-10 overflow-x-auto pb-2 sm:pb-0 scrollbar-none sm:flex-wrap">
         {categories.map((cat) => {
           const count = cat === 'Tümü'
             ? EDUCATIONAL_TEMPLATES.length
@@ -543,7 +549,7 @@ export const TemplateGrid: React.FC<TemplateGridProps> = ({
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                 selectedCategory === cat
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
                   : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-xs'

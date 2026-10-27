@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Timer, Trophy, RotateCcw, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
@@ -7,6 +7,7 @@ interface MemoryCard {
   uid: string;
   itemId: string;
   content: string;
+  image?: string;
   isQuestion: boolean;
   isFlipped: boolean;
   isMatched: boolean;
@@ -42,7 +43,8 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
       deck.push({
         uid: `${item.id}_q`,
         itemId: item.id,
-        content: item.question || item.image || '',
+        content: item.question || '',
+        image: item.image,
         isQuestion: true,
         isFlipped: false,
         isMatched: false,
@@ -51,6 +53,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
         uid: `${item.id}_a`,
         itemId: item.id,
         content: item.answer,
+        image: item.answerImage,
         isQuestion: false,
         isFlipped: false,
         isMatched: false,
@@ -86,10 +89,30 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
     return () => clearInterval(interval);
   }, [isPlaying, isWon]);
 
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
   const playSound = (type: 'flip' | 'match' | 'wrong' | 'win') => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -217,7 +240,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-3.5 w-full">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3.5 w-full">
         {cards.map((card, idx) => {
           const isRevealed = card.isFlipped || card.isMatched;
           return (
@@ -227,7 +250,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
               className="relative aspect-[4/3] cursor-pointer select-none perspective-1000"
             >
               <div
-                className={`w-full h-full duration-500 rounded-2xl p-3 flex items-center justify-center text-center transform-style-preserve-3d transition-transform ${
+                className={`w-full h-full duration-500 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center justify-center text-center transform-style-preserve-3d transition-transform ${
                   isRevealed ? 'rotate-y-180' : ''
                 }`}
               >
@@ -247,7 +270,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
 
                 {/* Front of Card (Revealed Content) */}
                 <div
-                  className={`absolute inset-0 rounded-2xl p-3 flex flex-col items-center justify-center text-center rotate-y-180 backface-hidden border shadow-lg ${
+                  className={`absolute inset-0 rounded-2xl p-2 sm:p-3 flex flex-col items-center justify-center text-center rotate-y-180 backface-hidden border shadow-lg ${
                     card.isMatched
                       ? 'bg-emerald-600 border-emerald-400 text-white'
                       : card.isQuestion
@@ -255,12 +278,23 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
                       : 'bg-amber-500 border-amber-300 text-white'
                   }`}
                 >
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-85 mb-1">
+                  <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider opacity-85 mb-0.5">
                     {card.isQuestion ? 'Soru / Terim' : 'Cevap / Anlam'}
                   </span>
-                  <p className="text-xs sm:text-sm font-black leading-snug line-clamp-3">
-                    {card.content}
-                  </p>
+                  {card.image && (
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white/95 p-1 mb-1 shadow-sm shrink-0">
+                      <img
+                        src={card.image}
+                        alt={card.content || 'Görsel'}
+                        className="w-full h-full object-contain pointer-events-none"
+                      />
+                    </div>
+                  )}
+                  {card.content && (
+                    <p className="text-xs sm:text-sm font-black leading-snug line-clamp-2">
+                      {card.content}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

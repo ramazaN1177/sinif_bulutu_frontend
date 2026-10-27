@@ -28,12 +28,61 @@ export const WheelGame: React.FC<WheelGameProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rotationRef = useRef(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Clean up AudioContext on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close().catch(() => {});
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Listen for backgrounding / tab hidden
+  useEffect(() => {
+    const handlePause = () => {
+      try {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => {});
+        }
+      } catch {}
+    };
+    const handleVisibility = () => {
+      if (document.hidden) handlePause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('app_pause_audio', handlePause);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('app_pause_audio', handlePause);
+    };
+  }, []);
+
+  const getAudioCtx = () => {
+    try {
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) audioCtxRef.current = new AudioCtx();
+      }
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+      return audioCtxRef.current;
+    } catch {
+      return null;
+    }
+  };
 
   // Play sound synthesized with Web Audio API (cross-platform, zero asset load failure)
   const playTickSound = () => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx = getAudioCtx();
+      if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'triangle';
@@ -49,9 +98,10 @@ export const WheelGame: React.FC<WheelGameProps> = ({
   };
 
   const playWinSound = () => {
-    if (!soundEnabled) return;
+    if (!soundEnabled || document.hidden) return;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx = getAudioCtx();
+      if (!audioCtx) return;
       [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -231,33 +281,33 @@ export const WheelGame: React.FC<WheelGameProps> = ({
       )}
 
       {/* Wheel Wrapper with Pointer */}
-      <div className="relative flex items-center justify-center my-2">
+      <div className="relative flex items-center justify-center my-2 max-w-full">
         {/* Top Pointer Indicator */}
-        <div className="absolute -top-3 z-20 w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[28px] border-t-amber-500 drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]" />
+        <div className="absolute -top-2.5 sm:-top-3.5 z-20 w-0 h-0 border-l-[10px] sm:border-l-[14px] border-l-transparent border-r-[10px] sm:border-r-[14px] border-r-transparent border-t-[20px] sm:border-t-[28px] border-t-amber-500 drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]" />
 
         <canvas
           ref={canvasRef}
-          width={400}
-          height={400}
+          width={600}
+          height={600}
           onClick={spin}
-          className={`cursor-pointer transition-transform duration-200 ${
+          className={`w-[min(300px,82vw)] h-[min(300px,82vw)] sm:w-[380px] sm:h-[380px] max-w-full cursor-pointer transition-transform duration-200 ${
             isSpinning ? 'cursor-not-allowed scale-[0.99]' : 'hover:scale-[1.01]'
           }`}
         />
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-4 mt-4">
+      <div className="flex flex-wrap items-center justify-center gap-3 mt-3 w-full">
         <button
           onClick={spin}
           disabled={isSpinning || items.length === 0}
-          className={`px-8 py-3.5 rounded-2xl font-black text-base flex items-center gap-2 shadow-lg transition-all cursor-pointer ${
+          className={`px-6 sm:px-8 py-3 sm:py-3.5 rounded-2xl font-black text-sm sm:text-base flex items-center gap-2 shadow-lg transition-all cursor-pointer ${
             isSpinning || items.length === 0
               ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 active:scale-95'
           }`}
         >
-          <RotateCw className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
+          <RotateCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isSpinning ? 'animate-spin' : ''}`} />
           {isSpinning ? 'Çevriliyor...' : 'ÇARKINI ÇEVİR!'}
         </button>
 

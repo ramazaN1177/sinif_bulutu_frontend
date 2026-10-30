@@ -14,6 +14,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface AirplaneGameProps {
   title?: string;
@@ -40,8 +41,9 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
   title: _title = 'Uçakla Doğru Bulut',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -216,11 +218,33 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
     };
   }, []);
 
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(score);
+    hud?.setStreak(streak);
+    hud?.setTimeLeft(timeLeft);
+    hud?.setTotalTime(60);
+    hud?.setTotalQuestions(items.length);
+    hud?.setQuestionIndex(currentIdx);
+    hud?.setQuestionText(currentItem?.question || '');
+  }, [hud, score, streak, timeLeft, items.length, currentIdx, currentItem]);
+
+  // Pause sync with GameHud
+  useEffect(() => {
+    if (hud?.isPaused) {
+      setIsPlaying(false);
+    } else if (!isFinished) {
+      setIsPlaying(true);
+    }
+  }, [hud?.isPaused, isFinished]);
+
   const finishGame = () => {
     setIsPlaying(false);
     setIsFinished(true);
     playSound('win');
     confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+    const stars = lives >= 3 ? 3 : lives >= 2 ? 2 : 1;
+    hud?.finishGame(stars, Math.min(currentIdx + 1, items.length));
     if (onFinish) onFinish(score);
     if ((window as any)?.ReactNativeWebView) {
       (window as any).ReactNativeWebView.postMessage(
@@ -445,76 +469,67 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
       : '';
 
   return (
-    <div
-      className={`relative w-full max-w-4xl mx-auto flex flex-col items-center select-none ${
-        isEmbed ? 'p-1' : 'p-4'
-      }`}
-    >
-      {/* Top HUD */}
-      <div className="w-full mb-3 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-md flex items-center justify-between">
-        {/* Score & Lives */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-500">
-              Skor: <strong className="text-slate-900 text-base">{score}</strong>
-            </span>
+    <div className="relative w-full h-full flex flex-col items-center select-none p-1 sm:p-2 overflow-hidden">
+      {/* Top HUD only when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="w-full mb-2 p-2.5 sm:p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <span className="text-xs font-extrabold text-slate-500">
+                Skor: <strong className="text-slate-900 text-base">{score}</strong>
+              </span>
+            </div>
+            {streak > 1 && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-black">
+                <Flame size={14} className="fill-orange-500 text-orange-500" />
+                <span>{streak}x</span>
+              </div>
+            )}
           </div>
+          <div className="flex items-center gap-2">
+            <Timer className="w-5 h-5 text-blue-600" />
+            <span className="font-mono text-base font-extrabold text-slate-800">{timeLeft}s</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-600"
+              title="Ses"
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              onClick={resetGame}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-600"
+              title="Yeniden Başlat"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
-          <div className="flex items-center gap-1">
+      {/* Flight Mission Question Bar with Drawing Instruction */}
+      <div className="w-full max-w-4xl mb-2 px-4 py-2 sm:py-2.5 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-sky-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left z-20">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-black shadow-xs">
+            <Pencil size={12} className="text-sky-600 stroke-[2.5]" />
+            <span>Rotayı çiz!</span>
+          </div>
+          <div className="flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
             {[1, 2, 3].map((heart) => (
               <Heart
                 key={heart}
-                size={16}
+                size={14}
                 className={`transition-colors ${
                   heart <= lives ? 'text-rose-500 fill-rose-500' : 'text-slate-300'
                 }`}
               />
             ))}
           </div>
-
-          {streak > 1 && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-black">
-              <Flame size={14} className="fill-orange-500 text-orange-500" />
-              <span>{streak}x Uçuş Serisi!</span>
-            </div>
-          )}
         </div>
-
-        {/* Timer */}
-        <div className="flex items-center gap-2">
-          <Timer className="w-5 h-5 text-blue-600" />
-          <span className="font-mono text-base font-extrabold text-slate-800">
-            {timeLeft}s
-          </span>
-        </div>
-
-        {/* Audio & Reset */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/80 transition-colors"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/80 transition-colors"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Flight Mission Question Bar with Drawing Instruction */}
-      <div className="w-full mb-3 p-4 rounded-2xl bg-white border-2 border-sky-500 shadow-md flex flex-col items-center text-center">
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-black mb-1.5 shadow-xs">
-          <Pencil size={13} className="text-sky-600 stroke-[2.5]" />
-          <span>Uçaktan doğru buluta parmağınla / farenle rota çiz!</span>
-        </div>
-        <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 font-display">
+        <h3 className="text-base sm:text-lg font-black text-slate-800 font-display flex-1 text-center">
           {currentItem.question}
         </h3>
       </div>
@@ -526,12 +541,7 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="relative w-full aspect-[4/3] sm:aspect-[16/9] min-h-[300px] sm:min-h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-sky-600/60 shadow-2xl p-2 sm:p-6 select-none touch-none cursor-crosshair"
-        style={{
-          backgroundImage: 'url(/assets/sky_bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
+        className="relative flex-1 w-full min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-sky-200/80 shadow-lg p-2 select-none touch-none cursor-crosshair bg-sky-300/10 backdrop-blur-xs"
       >
         {/* Soft Ambient Sky Vignette */}
         <div className="absolute inset-0 bg-sky-900/10 pointer-events-none" />
@@ -592,7 +602,7 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
           <div
             className="w-28 sm:w-40 h-14 sm:h-20 bg-contain bg-no-repeat bg-center drop-shadow-xl"
             style={{
-              backgroundImage: 'url(/assets/cartoon_plane.png)',
+              backgroundImage: 'url(/games/airplane/plane.png)',
             }}
           />
         </div>
@@ -617,7 +627,7 @@ export const AirplaneGame: React.FC<AirplaneGameProps> = ({
                   cloud.isHit ? 'filter brightness-105' : ''
                 }`}
                 style={{
-                  backgroundImage: 'url(/assets/cartoon_cloud.png)',
+                  backgroundImage: 'url(/games/airplane/cloud.png)',
                 }}
               />
 

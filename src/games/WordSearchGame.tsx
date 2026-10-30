@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface WordSearchGameProps {
   title?: string;
@@ -26,8 +27,9 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
   title: _title = 'Kelime Avı (Kare Bulmaca)',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [grid, setGrid] = useState<string[][]>([]);
   const [foundWords, setFoundWords] = useState<string[]>([]);
   const [selectedCells, setSelectedCells] = useState<{ r: number; c: number }[]>([]);
@@ -41,6 +43,25 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
   const targetWords = items.map((it) =>
     it.answer.replace(/[^A-Za-zÇĞİÖŞÜçğıöşü]/g, '').toLocaleUpperCase('tr-TR')
   ).slice(0, 5);
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(score);
+    hud?.setTimeLeft(timeLeft);
+    hud?.setTotalTime(90);
+    hud?.setTotalQuestions(targetWords.length);
+    hud?.setQuestionIndex(foundWords.length);
+    hud?.setQuestionText('Gizli kelimeleri tabloda bul!');
+  }, [hud, score, timeLeft, targetWords.length, foundWords.length]);
+
+  // Pause sync
+  useEffect(() => {
+    if (hud?.isPaused) {
+      setIsPlaying(false);
+    } else if (!isFinished) {
+      setIsPlaying(true);
+    }
+  }, [hud?.isPaused, isFinished]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -215,6 +236,8 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
     setIsFinished(true);
     playSound('win');
     confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+    const stars = foundWords.length >= targetWords.length ? 3 : foundWords.length >= 2 ? 2 : 1;
+    hud?.finishGame(stars, foundWords.length);
     if (onFinish) onFinish(score);
     if ((window as any)?.ReactNativeWebView) {
       (window as any).ReactNativeWebView.postMessage(
@@ -265,54 +288,53 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
   };
 
   return (
-    <div
-      className={`relative w-full max-w-4xl mx-auto flex flex-col items-center select-none ${
-        isEmbed ? 'p-1' : 'p-4'
-      }`}
-    >
-      {/* HUD Bar */}
-      <div className="w-full mb-3 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-600">
-              Skor: <strong className="text-slate-900 text-base">{score}</strong>
+    <div className="relative w-full h-full flex flex-col items-center justify-between select-none p-2 sm:p-4 overflow-y-auto">
+      {/* Fallback HUD Bar when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="w-full max-w-2xl mb-2 p-2.5 sm:p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <span className="text-xs font-extrabold text-slate-600">
+                Skor: <strong className="text-slate-900 text-base">{score}</strong>
+              </span>
+            </div>
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+              {foundWords.length} / {targetWords.length} Bulundu
             </span>
           </div>
 
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
-            {foundWords.length} / {targetWords.length} Bulundu
+          <div className="flex items-center gap-2">
+            <Timer className="w-5 h-5 text-blue-600" />
+            <span className="font-mono text-base font-extrabold text-slate-900">{timeLeft}s</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Ses"
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              onClick={resetGame}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Yeniden Başlat"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Container */}
+      <div className="w-full max-w-2xl flex-1 flex flex-col items-center justify-center py-1">
+        {/* Word Checklist Bar */}
+        <div className="w-full mb-3 px-3 py-2 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-emerald-300 shadow-sm flex flex-wrap items-center justify-center gap-1.5">
+          <span className="text-xs font-black uppercase tracking-wider text-emerald-700 mr-1.5 flex items-center gap-1">
+            <Search size={13} /> Gizli Kelimeler:
           </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Timer className="w-5 h-5 text-blue-600" />
-          <span className="font-mono text-base font-extrabold text-slate-900">{timeLeft}s</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Word Checklist Bar */}
-      <div className="w-full mb-4 p-4 rounded-2xl bg-white border-2 border-emerald-400 shadow-sm flex flex-wrap items-center justify-center gap-2">
-        <span className="text-xs font-black uppercase tracking-wider text-emerald-700 mr-2 flex items-center gap-1">
-          <Search size={14} /> Gizli Kelimeler:
-        </span>
         {targetWords.map((word) => {
           const isFound = foundWords.includes(word);
           return (
@@ -354,6 +376,7 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
             })
           )}
         </div>
+      </div>
       </div>
 
       {/* Finished Game Overlay */}

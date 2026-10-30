@@ -10,6 +10,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface HangmanGameProps {
   title?: string;
@@ -28,8 +29,9 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
   title: _title = 'Gizli Kelime (Kelime Kurtarma)',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
@@ -41,6 +43,14 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
   const currentItem = items[currentIdx] || items[0];
   const targetWord = (currentItem.answer || '').toLocaleUpperCase('tr-TR');
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(score);
+    hud?.setTotalQuestions(items.length);
+    hud?.setQuestionIndex(currentIdx);
+    hud?.setQuestionText(currentItem?.question || 'Kelimeyi bul!');
+  }, [hud, score, items.length, currentIdx, currentItem]);
 
   const playSound = (type: 'correct' | 'wrong' | 'win') => {
     if (!soundEnabled || document.hidden) return;
@@ -143,7 +153,10 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
             setWrongGuesses(0);
           } else {
             setIsFinished(true);
-            if (onFinish) onFinish(score + 150);
+            const finalScore = score + 150;
+            const stars = finalScore >= (items.length * 100) ? 3 : finalScore >= (items.length * 50) ? 2 : 1;
+            hud?.finishGame(stars, items.length);
+            if (onFinish) onFinish(finalScore);
           }
         }, 900);
       }
@@ -160,6 +173,9 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
             setWrongGuesses(0);
           } else {
             setIsFinished(true);
+            const stars = score >= (items.length * 50) ? 2 : 1;
+            hud?.finishGame(stars, Math.min(currentIdx + 1, items.length));
+            if (onFinish) onFinish(score);
           }
         }, 1200);
       }
@@ -187,106 +203,122 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
   };
 
   return (
-    <div
-      className={`relative w-full max-w-4xl mx-auto flex flex-col items-center select-none ${
-        isEmbed ? 'p-1' : 'p-4'
-      }`}
-    >
-      {/* Top HUD */}
-      <div className="w-full mb-3 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
-        <div className="flex items-center gap-4">
+    <div className="relative w-full h-full flex flex-col items-center justify-between select-none p-2 sm:p-4 overflow-y-auto">
+      {/* Top HUD only when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="w-full max-w-2xl mb-2 p-2.5 sm:p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <span className="text-xs font-extrabold text-slate-600">
+                Skor: <strong className="text-slate-900 text-base">{score}</strong>
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: maxWrong }).map((_, i) => (
+                <Heart
+                  key={i}
+                  size={14}
+                  className={`transition-colors ${
+                    i < maxWrong - wrongGuesses ? 'text-rose-500 fill-rose-500' : 'text-slate-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
           <div className="flex items-center gap-1.5">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-600">
-              Skor: <strong className="text-slate-900 text-base">{score}</strong>
-            </span>
-          </div>
-
-          {/* Hearts / Remaining Attempts */}
-          <div className="flex items-center gap-1">
-            {Array.from({ length: maxWrong }).map((_, i) => (
-              <Heart
-                key={i}
-                size={16}
-                className={`transition-colors ${
-                  i < maxWrong - wrongGuesses
-                    ? 'text-rose-500 fill-rose-500'
-                    : 'text-slate-300'
-                }`}
-              />
-            ))}
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Ses"
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              onClick={resetGame}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Yeniden Başlat"
+            >
+              <RotateCcw size={16} />
+            </button>
           </div>
         </div>
+      )}
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={16} />
-          </button>
+      {/* Main Container */}
+      <div className="w-full max-w-2xl flex-1 flex flex-col items-center justify-center py-1">
+        {/* Question / Clue Card */}
+        <div className="w-full mb-3 px-4 py-2 sm:py-3 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-cyan-300 shadow-sm text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-cyan-700 mb-0.5">
+            <Lightbulb size={13} />
+            <span>Kelime {currentIdx + 1} / {items.length} • İpucu</span>
+          </div>
+          <h3 className="text-base sm:text-lg font-black text-slate-800 font-display">
+            {currentItem.question}
+          </h3>
         </div>
-      </div>
 
-      {/* Question / Clue Card */}
-      <div className="w-full mb-4 p-4 rounded-2xl bg-white border-2 border-rose-300 shadow-md text-center">
-        <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-rose-600 mb-1">
-          <Lightbulb size={14} />
-          <span>Kelime {currentIdx + 1} / {items.length} • İpucu</span>
-        </div>
-        <h3 className="text-base sm:text-lg font-extrabold text-slate-900 font-display">
-          {currentItem.question}
-        </h3>
-      </div>
+        {/* Rescue Island & Boat Scene */}
+        <div className="w-full mb-3 p-3 sm:p-4 rounded-3xl bg-white/90 backdrop-blur-md border-2 border-cyan-200 shadow-md flex flex-col items-center">
+          <svg width="280" height="85" viewBox="0 0 280 85" className="w-full max-w-[280px] overflow-visible">
+            <defs>
+              <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="100%" stopColor="#0284c7" />
+              </linearGradient>
+            </defs>
+            {/* Sea Waves */}
+            <path
+              d="M 0 60 Q 35 54, 70 60 T 140 60 T 210 60 T 280 60 L 280 85 L 0 85 Z"
+              fill="url(#seaGrad)"
+              opacity="0.85"
+            />
+            {/* Island on Right */}
+            <path d="M 195 64 Q 235 44, 275 64 Z" fill="#fde047" stroke="#ca8a04" strokeWidth="2" />
+            <path d="M 235 56 Q 233 36, 240 22" stroke="#854d0e" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+            <circle cx="236" cy="20" r="9" fill="#22c55e" />
+            <circle cx="244" cy="19" r="7" fill="#16a34a" />
+            {/* Lighthouse */}
+            <rect x="253" y="30" width="10" height="26" rx="2" fill="#ef4444" />
+            <rect x="255" y="36" width="6" height="5" fill="#ffffff" />
+            <rect x="255" y="45" width="6" height="5" fill="#ffffff" />
+            <polygon points="258,22 251,30 265,30" fill="#fbbf24" />
 
-      {/* Main Play Area with Scaffold & Secret Word */}
-      <div className="w-full p-6 sm:p-8 rounded-3xl bg-white border-2 border-slate-200 shadow-xl flex flex-col items-center">
-        {/* Rescue Scaffold Graphic */}
-        <div className="mb-6 flex items-center justify-center">
-          <svg width="180" height="140" viewBox="0 0 180 140" className="stroke-slate-700">
-            {/* Base Stand */}
-            <line x1="20" y1="130" x2="160" y2="130" strokeWidth="4" strokeLinecap="round" />
-            {/* Pole */}
-            <line x1="50" y1="130" x2="50" y2="20" strokeWidth="4" strokeLinecap="round" />
-            {/* Beam */}
-            <line x1="50" y1="20" x2="130" y2="20" strokeWidth="4" strokeLinecap="round" />
-            {/* Strut */}
-            <line x1="50" y1="50" x2="80" y2="20" strokeWidth="3" strokeLinecap="round" />
-            {/* Rope */}
-            <line x1="130" y1="20" x2="130" y2="40" strokeWidth="3" strokeLinecap="round" />
-
-            {/* Character Stages based on wrongGuesses */}
-            {wrongGuesses >= 1 && (
-              <circle cx="130" cy="52" r="12" stroke="#FDA4AF" strokeWidth="3" fill="#881337" />
-            )}
-            {wrongGuesses >= 2 && (
-              <line x1="130" y1="64" x2="130" y2="95" stroke="#FDA4AF" strokeWidth="3" />
-            )}
-            {wrongGuesses >= 3 && (
-              <line x1="130" y1="74" x2="110" y2="86" stroke="#FDA4AF" strokeWidth="3" />
-            )}
-            {wrongGuesses >= 4 && (
-              <line x1="130" y1="74" x2="150" y2="86" stroke="#FDA4AF" strokeWidth="3" />
-            )}
-            {wrongGuesses >= 5 && (
-              <line x1="130" y1="95" x2="112" y2="115" stroke="#FDA4AF" strokeWidth="3" />
-            )}
-            {wrongGuesses >= 6 && (
-              <line x1="130" y1="95" x2="148" y2="115" stroke="#FDA4AF" strokeWidth="3" />
-            )}
+            {/* Rescue Boat */}
+            <g
+              transform={`translate(${20 + (Math.min(wrongGuesses, maxWrong) / maxWrong) * 165}, 55)`}
+              className="transition-transform duration-700 ease-out"
+            >
+              <path d="M -16 0 L 16 0 L 10 10 L -10 10 Z" fill="#f97316" stroke="#c2410c" strokeWidth="1.5" />
+              <polygon points="0,-16 12,-2 0,-2" fill="#ffffff" stroke="#0284c7" strokeWidth="1.5" />
+              <line x1="0" y1="0" x2="0" y2="-18" stroke="#78350f" strokeWidth="2" />
+              <polygon points="0,-18 -5,-15 0,-12" fill="#ec4899" />
+              <circle cx="-3" cy="-3" r="4" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+            </g>
           </svg>
+
+          <div className="flex items-center justify-between w-full px-2 mt-1">
+            <span className="text-[11px] font-black text-cyan-800 flex items-center gap-1">
+              <Heart size={13} className="text-rose-500 fill-rose-500" /> Kalan Kurtarma Canı:
+            </span>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: maxWrong }).map((_, i) => (
+                <Heart
+                  key={i}
+                  size={15}
+                  className={`transition-all duration-300 ${
+                    i < maxWrong - wrongGuesses
+                      ? 'text-rose-500 fill-rose-500 scale-100'
+                      : 'text-slate-200 fill-slate-100 scale-75'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Word Blank Slots */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 mb-6 sm:mb-8 max-w-full">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 mb-3 max-w-full">
           {targetWord.split('').map((char, idx) => {
             if (char === ' ') {
               return <div key={idx} className="w-2 sm:w-4" />;
@@ -295,10 +327,10 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
             return (
               <div
                 key={idx}
-                className={`w-7 sm:w-11 h-10 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-base sm:text-2xl font-black transition-all ${
+                className={`w-8 sm:w-11 h-11 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-2xl font-black transition-all ${
                   isRevealed
-                    ? 'bg-rose-600 text-white border-2 border-rose-300 shadow-lg shadow-rose-500/20'
-                    : 'bg-slate-800 text-transparent border-2 border-slate-700'
+                    ? 'bg-cyan-500 text-white border-2 border-cyan-300 shadow-md shadow-cyan-500/20'
+                    : 'bg-white/90 text-transparent border-2 border-dashed border-cyan-300 shadow-xs'
                 }`}
               >
                 {isRevealed ? char : ''}
@@ -308,9 +340,9 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
         </div>
 
         {/* Turkish Virtual Keyboard */}
-        <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full max-w-xl">
+        <div className="flex flex-col items-center gap-1 sm:gap-1.5 w-full max-w-lg mt-1">
           {TURKISH_KEYBOARD.map((row, rowIdx) => (
-            <div key={rowIdx} className="flex items-center justify-center gap-1 sm:gap-2 w-full">
+            <div key={rowIdx} className="flex items-center justify-center gap-1 sm:gap-1.5 w-full">
               {row.map((letter) => {
                 const isGuessed = guessedLetters.includes(letter);
                 const isCorrect = isGuessed && targetWord.includes(letter);
@@ -321,12 +353,12 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({
                     key={letter}
                     disabled={isGuessed || isFinished || wrongGuesses >= maxWrong}
                     onClick={() => handleGuess(letter)}
-                    className={`w-[min(30px,8vw)] sm:w-10 h-9 sm:h-12 rounded-lg sm:rounded-xl font-extrabold text-[11px] sm:text-sm transition-all duration-150 flex items-center justify-center active:scale-95 ${
+                    className={`w-[min(32px,8.5vw)] sm:w-10 h-10 sm:h-12 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center active:scale-90 border-b-2 ${
                       isCorrect
-                        ? 'bg-emerald-600 text-white opacity-80 cursor-default'
+                        ? 'bg-emerald-500 text-white border-emerald-600 opacity-90 cursor-default'
                         : isWrong
-                        ? 'bg-slate-800/40 text-slate-600 border border-slate-800 cursor-not-allowed line-through'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-500 shadow-sm'
+                        ? 'bg-rose-100 text-rose-300 border-rose-200 line-through cursor-not-allowed'
+                        : 'bg-white hover:bg-cyan-50 text-slate-800 border-slate-200 hover:border-cyan-400 shadow-xs'
                     }`}
                   >
                     {letter}

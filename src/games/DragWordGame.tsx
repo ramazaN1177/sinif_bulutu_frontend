@@ -11,6 +11,7 @@ import {
   Flame,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface DragWordGameProps {
   title?: string;
@@ -23,8 +24,9 @@ export const DragWordGame: React.FC<DragWordGameProps> = ({
   title: _title = 'Cümle İçi Boşluk Doldurma',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -37,6 +39,26 @@ export const DragWordGame: React.FC<DragWordGameProps> = ({
 
   const currentItem = items[currentIdx] || items[0];
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(score);
+    hud?.setStreak(streak);
+    hud?.setTimeLeft(timeLeft);
+    hud?.setTotalTime(60);
+    hud?.setTotalQuestions(items.length);
+    hud?.setQuestionIndex(currentIdx);
+    hud?.setQuestionText(currentItem?.question || 'Boşluğu doldur!');
+  }, [hud, score, streak, timeLeft, items.length, currentIdx, currentItem]);
+
+  // Pause sync
+  useEffect(() => {
+    if (hud?.isPaused) {
+      setIsPlaying(false);
+    } else if (!isFinished) {
+      setIsPlaying(true);
+    }
+  }, [hud?.isPaused, isFinished]);
 
   // Generate word bank options
   const [options, setOptions] = useState<string[]>([]);
@@ -166,6 +188,8 @@ export const DragWordGame: React.FC<DragWordGameProps> = ({
     setIsFinished(true);
     playSound('win');
     confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+    const stars = score >= items.length * 80 ? 3 : score >= items.length * 50 ? 2 : 1;
+    hud?.finishGame(stars, Math.min(currentIdx + 1, items.length));
     if (onFinish) onFinish(score);
     if ((window as any)?.ReactNativeWebView) {
       (window as any).ReactNativeWebView.postMessage(
@@ -225,51 +249,49 @@ export const DragWordGame: React.FC<DragWordGameProps> = ({
     : [rawQuestion, ''];
 
   return (
-    <div
-      className={`relative w-full max-w-3xl mx-auto flex flex-col items-center select-none ${
-        isEmbed ? 'p-1' : 'p-4'
-      }`}
-    >
-      {/* HUD Bar */}
-      <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-600">
-              Skor: <strong className="text-slate-900 text-base">{score}</strong>
-            </span>
-          </div>
-
-          {streak > 1 && (
-            <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-black anim-pulse-glow">
-              <Flame size={14} className="fill-orange-500 text-orange-500" />
-              <span>{streak}x Seri!</span>
+    <div className="relative w-full h-full flex flex-col items-center justify-center select-none p-2 sm:p-4 overflow-y-auto">
+      {/* Fallback HUD Bar when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="w-full max-w-2xl mb-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <span className="text-xs font-extrabold text-slate-600">
+                Skor: <strong className="text-slate-900 text-base">{score}</strong>
+              </span>
             </div>
-          )}
+            {streak > 1 && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-black">
+                <Flame size={14} className="fill-orange-500 text-orange-500" />
+                <span>{streak}x</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Timer className="w-5 h-5 text-blue-600" />
+            <span className="font-mono text-base font-extrabold text-slate-900">{timeLeft}s</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Ses"
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              onClick={resetGame}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Yeniden Başlat"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
         </div>
+      )}
 
-        <div className="flex items-center gap-2">
-          <Timer className="w-5 h-5 text-blue-600" />
-          <span className="font-mono text-base font-extrabold text-slate-900">{timeLeft}s</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
+      {/* Main Container */}
+      <div className="w-full max-w-2xl flex-1 flex flex-col justify-center py-2">
 
       {/* Progress Bar */}
       <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-5">
@@ -341,6 +363,7 @@ export const DragWordGame: React.FC<DragWordGameProps> = ({
             );
           })}
         </div>
+      </div>
       </div>
 
       {/* Finished Modal */}

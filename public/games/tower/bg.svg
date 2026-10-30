@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" fill="none">
+  <!-- Sky Gradient (Teal / Turquoise to Soft Aqua) -->
+  <defs>
+    <linearGradient id="skyGrad" x1="200" y1="0" x2="200" y2="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#73D0D3"/>
+      <stop offset="45%" stop-color="#A4E3E3"/>
+      <stop offset="85%" stop-color="#C7F0F0"/>
+      <stop offset="100%" stop-color="#DDF6F6"/>
+    </linearGradient>
+    <linearGradient id="deepSkyGrad" x1="200" y1="0" x2="200" y2="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3686D7"/>
+      <stop offset="60%" stop-color="#69AEF3"/>
+      <stop offset="100%" stop-color="#A0CEF9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="400" height="700" fill="url(#skyGrad)"/>
+
+  <!-- High Soft Clouds -->
+  <path d="M-10 80C10 65 40 65 60 75C80 60 115 65 125 85C135 75 160 80 165 95C165 110 140 120 120 120H-10V80Z" fill="#FFFFFF" fill-opacity="0.6"/>
+  <path d="M260 110C280 95 315 95 330 110C350 100 380 105 390 120C405 115 425 125 425 140C420 155 390 160 360 160H260V110Z" fill="#FFFFFF" fill-opacity="0.5"/>
+
+  <!-- Distant City Skyscraper Silhouettes (Layer 1 - Lighter Aqua) -->
+  <g fill="#57C0C4" fill-opacity="0.55">
+    <rect x="25" y="240" width="45" height="460" rx="2"/>
+    <rect x="65" y="300" width="30" height="400" rx="2"/>
+    <rect x="135" y="220" width="55" height="480" rx="2"/>
+    <rect x="215" y="260" width="50" height="440" rx="2"/>
+    <rect x="295" y="200" width="60" height="500" rx="2"/>
+    <rect x="350" y="280" width="40" height="420" rx="2"/>
+  </g>
+
+  <!-- Mid-distance City Skyscraper Silhouettes with Windows Lines (Layer 2 - Deeper Teal) -->
+  <g fill="#41ACB0" fill-opacity="0.75">
+    <rect x="0" y="330" width="65" height="370" rx="2"/>
+    <rect x="80" y="260" width="60" height="440" rx="2"/>
+    <rect x="180" y="310" width="48" height="390" rx="2"/>
+    <rect x="245" y="350" width="55" height="350" rx="2"/>
+    <rect x="325" y="250" width="65" height="450" rx="2"/>
+  </g>
+
+  <!-- Subtle Window Grid Bars on Mid Skyscrapers -->
+  <path d="M10 360H55 M10 385H55 M10 410H55 M10 435H55 M10 460H55" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="6 6"/>
+  <path d="M90 290H130 M90 315H130 M90 340H130 M90 365H130 M90 390H130" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="6 6"/>
+  <path d="M335 280H380 M335 305H380 M335 330H380 M335 355H380 M335 380H380" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="6 6"/>
+
+  <!-- Street Pavement / Ground Horizon at bottom -->
+  <rect x="0" y="650" width="400" height="50" fill="#475569"/>
+  <rect x="0" y="642" width="400" height="8" fill="#64748B"/>
+</svg>

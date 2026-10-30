@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Timer, Trophy, RotateCcw, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface MemoryCard {
   uid: string;
@@ -24,8 +25,9 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
   title: _title = 'Hafıza Kartları & Eşleştirme',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [cards, setCards] = useState<MemoryCard[]>([]);
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -33,6 +35,21 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isWon, setIsWon] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Matched count
+  const matchedPairs = cards.filter((c) => c.isMatched).length / 2;
+  const totalPairs = Math.min(items.length, 8);
+  const calculatedScore = Math.max(10, 100 - moves * 2 - Math.floor(seconds / 2));
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(calculatedScore);
+    hud?.setTimeLeft(seconds);
+    hud?.setTotalTime(999);
+    hud?.setTotalQuestions(totalPairs);
+    hud?.setQuestionIndex(matchedPairs);
+    hud?.setQuestionText('Eşleşen kartları bul!');
+  }, [hud, calculatedScore, seconds, totalPairs, matchedPairs]);
 
   // Initialize deck with questions and answers as separate matchable cards
   const initGame = () => {
@@ -178,6 +195,8 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
             setIsPlaying(false);
             playSound('win');
             const score = Math.max(10, 100 - moves * 2 - Math.floor(seconds / 2));
+            const stars = moves <= totalPairs * 2 ? 3 : moves <= totalPairs * 3 ? 2 : 1;
+            hud?.finishGame(stars, totalPairs);
             if (onFinish) onFinish(score);
             if (window && (window as any).ReactNativeWebView) {
               (window as any).ReactNativeWebView.postMessage(
@@ -205,42 +224,45 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
   };
 
   return (
-    <div className={`flex flex-col items-center w-full max-w-4xl mx-auto ${isEmbed ? 'p-2' : 'p-6'}`}>
-      {/* Top Stats Bar */}
-      <div className="flex items-center justify-between w-full mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm text-slate-800">
-        <div className="flex items-center gap-3">
-          <Trophy className="w-5 h-5 text-amber-500" />
-          <span className="text-sm font-semibold text-slate-600">
-            Hamle: <strong className="text-slate-900 text-base">{moves}</strong>
-          </span>
-        </div>
+    <div className="w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 select-none overflow-y-auto">
+      {/* Fallback Top Stats Bar when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="flex items-center justify-between w-full max-w-2xl mb-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-sm text-slate-800">
+          <div className="flex items-center gap-3">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <span className="text-sm font-semibold text-slate-600">
+              Hamle: <strong className="text-slate-900 text-base">{moves}</strong>
+            </span>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Timer className="w-5 h-5 text-blue-600" />
-          <span className="text-sm font-semibold text-slate-600">
-            Süre: <strong className="text-slate-900 text-base font-mono">{formatTime(seconds)}</strong>
-          </span>
-        </div>
+          <div className="flex items-center gap-2">
+            <Timer className="w-5 h-5 text-blue-600" />
+            <span className="text-sm font-semibold text-slate-600">
+              Süre: <strong className="text-slate-900 text-base font-mono">{formatTime(seconds)}</strong>
+            </span>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
-          >
-            {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-          </button>
-          <button
-            onClick={initGame}
-            className="p-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-          >
-            <RotateCcw size={16} />
-            Yeniden Başlat
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              onClick={initGame}
+              className="p-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1 text-xs font-bold"
+            >
+              <RotateCcw size={14} />
+              Yeniden
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3.5 w-full">
+      {/* Cards Grid Container */}
+      <div className="flex-1 w-full max-w-2xl flex items-center justify-center py-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5 w-full">
         {cards.map((card, idx) => {
           const isRevealed = card.isFlipped || card.isMatched;
           return (
@@ -301,9 +323,10 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({
           );
         })}
       </div>
+      </div>
 
       {/* Victory Celebration Modal */}
-      {isWon && (
+      {isWon && !hud?.isInsideShell && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-md p-8 rounded-3xl bg-white border border-slate-200 text-center shadow-2xl text-slate-800">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 shadow-sm">

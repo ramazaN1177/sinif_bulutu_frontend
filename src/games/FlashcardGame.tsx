@@ -10,6 +10,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface FlashcardGameProps {
   title?: string;
@@ -22,17 +23,26 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
   title: _title = 'Bilgi Kartı Destesi (Flashcard)',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
-  const [reviewCount, setReviewCount] = useState(0);
+  const [_reviewCount, setReviewCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const currentItem = items[currentIdx] || items[0];
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(knownCount * 20);
+    hud?.setTotalQuestions(items.length);
+    hud?.setQuestionIndex(currentIdx);
+    hud?.setQuestionText(currentItem?.question || 'Kartı çevir ve öğren!');
+  }, [hud, knownCount, items.length, currentIdx, currentItem]);
 
   // Audio cleanup on unmount
   useEffect(() => {
@@ -147,6 +157,8 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
     playSound('win');
     confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
     const finalScore = finalKnown * 100;
+    const stars = finalKnown >= items.length * 0.8 ? 3 : finalKnown >= items.length * 0.5 ? 2 : 1;
+    hud?.finishGame(stars, finalKnown);
     if (onFinish) onFinish(finalScore);
     if ((window as any)?.ReactNativeWebView) {
       (window as any).ReactNativeWebView.postMessage(
@@ -164,63 +176,49 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
   };
 
   return (
-    <div
-      className={`relative w-full max-w-2xl mx-auto flex flex-col items-center select-none ${
-        isEmbed ? 'p-1' : 'p-4'
-      }`}
-    >
-      {/* HUD Bar */}
-      <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
-        <div className="flex items-center gap-4">
+    <div className="relative w-full h-full flex flex-col items-center justify-between select-none p-2 sm:p-4 overflow-y-auto">
+      {/* Fallback HUD Bar when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="w-full max-w-lg mb-2 p-2.5 sm:p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <span className="text-xs font-extrabold text-slate-600">
+                Kart: <strong className="text-slate-900 text-base">{currentIdx + 1} / {items.length}</strong>
+              </span>
+            </div>
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+              {knownCount} Biliyorum
+            </span>
+          </div>
+
           <div className="flex items-center gap-1.5">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-600">
-              Kart: <strong className="text-slate-900 text-base">{currentIdx + 1} / {items.length}</strong>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs font-bold">
-            <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
-              <CheckCircle2 size={14} className="text-emerald-600" /> {knownCount} Biliyorum
-            </span>
-            <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
-              <RotateCw size={14} className="text-amber-600" /> {reviewCount} Tekrar Et
-            </span>
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Ses"
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              onClick={resetGame}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Yeniden Başlat"
+            >
+              <RotateCcw size={16} />
+            </button>
           </div>
         </div>
+      )}
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-5">
+      {/* Main Container */}
+      <div className="w-full max-w-lg flex-1 flex flex-col items-center justify-center py-2">
+        {/* 3D Flip Card Container */}
         <div
-          className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full transition-all duration-300 rounded-full"
-          style={{ width: `${((currentIdx + 1) / items.length) * 100}%` }}
-        />
-      </div>
-
-      {/* 3D Flip Card Container */}
-      <div
-        onClick={handleFlip}
-        className="w-full min-h-[260px] h-[48vh] max-h-[380px] sm:h-96 cursor-pointer group perspective-1000 mb-6 select-none"
-        style={{ perspective: 1000, WebkitPerspective: 1000 }}
-      >
+          onClick={handleFlip}
+          className="w-full flex-1 min-h-[220px] max-h-[420px] cursor-pointer group perspective-1000 mb-4 select-none"
+          style={{ perspective: 1000, WebkitPerspective: 1000 }}
+        >
         <div
           className="relative w-full h-full duration-500 shadow-2xl rounded-3xl transform-style-preserve-3d"
           style={{
@@ -270,21 +268,21 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
 
           {/* BACK OF CARD (Answer / Definition) */}
           <div
-            className="absolute inset-0 backface-hidden rounded-3xl p-4 sm:p-8 bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white flex flex-col justify-between items-center text-center shadow-xl border-2 border-blue-400"
+            className="absolute inset-0 backface-hidden rounded-3xl p-4 sm:p-8 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white flex flex-col justify-between items-center text-center shadow-xl border-2 border-purple-300"
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
             }}
           >
-            <div className="w-full flex items-center justify-between text-xs font-extrabold text-blue-200 uppercase tracking-widest">
+            <div className="w-full flex items-center justify-between text-xs font-extrabold text-purple-100 uppercase tracking-widest">
               <span>Arka Yüz • Yanıt</span>
-              <span className="bg-white/10 px-2.5 py-1 rounded-full">Doğru Cevap</span>
+              <span className="bg-white/20 px-2.5 py-1 rounded-full font-black">Doğru Cevap</span>
             </div>
 
             <div className="my-auto px-4 flex flex-col items-center justify-center gap-3 max-h-[70%]">
               {currentItem.answerImage && (
-                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-white/10 border border-white/20 p-2 shadow-sm shrink-0">
+                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-white/20 border border-white/30 p-2 shadow-sm shrink-0">
                   <img
                     src={currentItem.answerImage}
                     alt={currentItem.answer || 'Cevap Görseli'}
@@ -299,7 +297,7 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
               )}
             </div>
 
-            <span className="text-xs font-medium text-blue-200/80">
+            <span className="text-xs font-bold text-purple-100">
               Aşağıdaki butonlarla değerlendirin
             </span>
           </div>
@@ -307,40 +305,41 @@ export const FlashcardGame: React.FC<FlashcardGameProps> = ({
       </div>
 
       {/* Action Buttons: Tekrar Et vs Biliyorum */}
-      <div className="grid grid-cols-2 gap-4 w-full">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full">
         <button
           onClick={() => handleNext(false)}
-          className="py-4 px-6 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 active:scale-95 text-amber-700 border-2 border-amber-300 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+          className="py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-800 border-2 border-amber-300 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
         >
           <RotateCw size={18} />
-          <span>Tekrar Etmem Gerek</span>
+          <span>Tekrar Et</span>
         </button>
 
         <button
           onClick={() => handleNext(true)}
-          className="py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white border-2 border-emerald-400 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xl shadow-emerald-600/25"
+          className="py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white border-2 border-emerald-400 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/25"
         >
           <CheckCircle2 size={18} />
           <span>Biliyorum!</span>
         </button>
       </div>
+      </div>
 
       {/* Finished Modal */}
-      {isFinished && (
-        <div className="absolute inset-0 z-40 bg-slate-900/90 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500 text-white flex items-center justify-center mb-4 shadow-xl shadow-emerald-500/30">
+      {isFinished && !hud?.isInsideShell && (
+        <div className="absolute inset-0 z-40 bg-white/95 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in text-slate-800 border border-slate-200">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mb-4 shadow-sm">
             <Sparkles size={36} />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 font-display">
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2 font-display">
             Tebrikler, Desteyi Tamamladınız!
           </h2>
-          <p className="text-slate-300 text-sm mb-6 max-w-md">
-            Toplam <strong className="text-emerald-400">{knownCount} kartı</strong> tam olarak öğrendiniz!
+          <p className="text-slate-600 text-sm mb-6 max-w-md">
+            Toplam <strong className="text-emerald-600 font-bold">{knownCount} kartı</strong> tam olarak öğrendiniz!
           </p>
 
           <button
             onClick={resetGame}
-            className="py-3 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg flex items-center gap-2 active:scale-95 transition-all"
+            className="py-3 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
           >
             <RotateCcw size={16} />
             <span>Desteyi Yeniden Çalış</span>

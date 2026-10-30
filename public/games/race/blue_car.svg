@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" width="160" height="80">
+  <defs>
+    <linearGradient id="bodyGradBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#0369A1" />
+    </linearGradient>
+    <linearGradient id="roofGradBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#075985" />
+      <stop offset="100%" stop-color="#0C4A6E" />
+    </linearGradient>
+    <linearGradient id="glassGradBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EFF6FF" />
+      <stop offset="100%" stop-color="#93C5FD" />
+    </linearGradient>
+    <radialGradient id="wheelGradBlue" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="40%" stop-color="#EAB308" />
+      <stop offset="70%" stop-color="#CA8A04" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </radialGradient>
+    <filter id="carShadowBlue" x="-10%" y="-10%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Car Shadow on Road -->
+  <ellipse cx="80" cy="72" rx="70" ry="6" fill="#000000" opacity="0.3" />
+
+  <!-- Main Body Group with Shadow -->
+  <g filter="url(#carShadowBlue)">
+    <!-- Rear Wing / Spoiler -->
+    <path d="M 12 28 L 26 28 L 22 38 L 10 38 Z" fill="#0369A1" />
+    <path d="M 6 26 L 28 26 L 26 30 L 4 30 Z" fill="#F97316" stroke="#C2410C" stroke-width="1.5" />
+
+    <!-- Exhaust Pipe -->
+    <rect x="6" y="52" width="10" height="6" rx="2" fill="#64748B" stroke="#334155" stroke-width="1" />
+    <ellipse cx="6" cy="55" rx="2" ry="2.5" fill="#1E293B" />
+
+    <!-- Aerodynamic Cabin / Roof -->
+    <path d="M 46 36 L 68 20 L 104 20 L 118 36 Z" fill="url(#roofGradBlue)" stroke="#0369A1" stroke-width="2" />
+    
+    <!-- Cockpit Windshield & Windows -->
+    <path d="M 50 35 L 69 23 L 88 23 L 88 35 Z" fill="url(#glassGradBlue)" opacity="0.9" />
+    <path d="M 92 23 L 102 23 L 114 35 L 92 35 Z" fill="url(#glassGradBlue)" opacity="0.9" />
+    <!-- Window Gloss Highlight -->
+    <path d="M 54 33 L 68 25 L 74 25 L 60 33 Z" fill="#FFFFFF" opacity="0.6" />
+
+    <!-- Lower Chassis & Streamlined Body -->
+    <path d="M 10 54 
+             C 10 44, 18 38, 30 38
+             L 48 38
+             L 68 20
+             L 106 20
+             L 122 36
+             L 142 42
+             C 152 46, 156 52, 154 58
+             L 148 62
+             L 12 62
+             Z" 
+          fill="url(#bodyGradBlue)" 
+          stroke="#0369A1" 
+          stroke-width="2" 
+          stroke-linejoin="round" />
+
+    <!-- Racing Stripe (Orange Flame) -->
+    <path d="M 24 48 L 148 48 L 147 52 L 24 52 Z" fill="#FB923C" />
+    <path d="M 24 52 L 146 52 L 145 54 L 24 54 Z" fill="#FFFFFF" />
+
+    <!-- Headlight (Front Facing Right) -->
+    <path d="M 142 45 C 148 46, 152 49, 152 52 L 140 52 Z" fill="#FDE047" stroke="#EAB308" stroke-width="1" />
+    <polygon points="144,48 150,50 144,51" fill="#FFFFFF" opacity="0.8" />
+
+    <!-- Racing Number Decal Badge (#2) -->
+    <circle cx="78" cy="46" r="11" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" />
+    <text x="78" y="51" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="900" fill="#0284C7" text-anchor="middle">2</text>
+
+    <!-- Taillight (Rear Facing Left) -->
+    <rect x="10" y="44" width="4" height="8" rx="1.5" fill="#EF4444" />
+  </g>
+
+  <!-- Left Wheel (Rear) -->
+  <g>
+    <!-- Tire -->
+    <circle cx="36" cy="60" r="15" fill="#0F172A" stroke="#334155" stroke-width="2" />
+    <!-- Rim -->
+    <circle cx="36" cy="60" r="9" fill="url(#wheelGradBlue)" stroke="#EAB308" stroke-width="1.5" />
+    <!-- Hubcap Nut -->
+    <circle cx="36" cy="60" r="3" fill="#0284C7" />
+    <!-- Tread Spokes -->
+    <line x1="36" y1="52" x2="36" y2="68" stroke="#78350F" stroke-width="1.5" />
+    <line x1="28" y1="60" x2="44" y2="60" stroke="#78350F" stroke-width="1.5" />
+  </g>
+
+  <!-- Right Wheel (Front) -->
+  <g>
+    <!-- Tire -->
+    <circle cx="126" cy="60" r="15" fill="#0F172A" stroke="#334155" stroke-width="2" />
+    <!-- Rim -->
+    <circle cx="126" cy="60" r="9" fill="url(#wheelGradBlue)" stroke="#EAB308" stroke-width="1.5" />
+    <!-- Hubcap Nut -->
+    <circle cx="126" cy="60" r="3" fill="#0284C7" />
+    <!-- Tread Spokes -->
+    <line x1="126" y1="52" x2="126" y2="68" stroke="#78350F" stroke-width="1.5" />
+    <line x1="118" y1="60" x2="134" y2="60" stroke="#78350F" stroke-width="1.5" />
+  </g>
+</svg>

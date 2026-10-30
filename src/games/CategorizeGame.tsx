@@ -2,18 +2,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import {
   Trophy,
-  Timer,
   RotateCcw,
-  Volume2,
-  VolumeX,
   CheckCircle2,
   XCircle,
-  Flame,
   ArrowDown,
   Hand,
   Image as ImageIcon,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
+import { triggerHaptic } from '../services/gameSettings';
 
 interface CategorizeGameProps {
   title?: string;
@@ -46,7 +44,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
   boxColors: propsBoxColors,
   boxImages: propsBoxImages,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
   // Extract unique categories (Max 10 boxes, configured in left panel)
   const [categories, setCategories] = useState<string[]>(() => {
@@ -101,13 +99,36 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
     return [...items].sort(() => Math.random() - 0.5);
   });
 
+  const hud = useGameHudOptional();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Sync state with GameHudContext
+  useEffect(() => {
+    if (!hud) return;
+    hud.setScore(score);
+    hud.setStreak(streak);
+    hud.setTimeLeft(timeLeft);
+    const item = shuffledItems[currentIdx];
+    hud.setQuestionInfo(
+      currentIdx,
+      shuffledItems.length,
+      item?.question || item?.answer,
+      item?.image
+    );
+  }, [hud, score, streak, timeLeft, currentIdx, shuffledItems]);
+
+  useEffect(() => {
+    if (hud) {
+      setSoundEnabled(hud.soundEnabled);
+    }
+  }, [hud?.soundEnabled]);
 
   // References to DOM elements
   const stageRef = useRef<HTMLDivElement>(null);
@@ -151,7 +172,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
   const currentItem = shuffledItems[currentIdx] || shuffledItems[0];
 
   // Sound generator
-  const playSound = (type: 'swish' | 'bounce' | 'win' | 'thud' | 'rim_clank') => {
+  const playSound = useCallback((type: 'swish' | 'bounce' | 'win' | 'thud' | 'rim_clank') => {
     if (!soundEnabled) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -211,7 +232,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
     } catch {
       // Audio fallback
     }
-  };
+  }, [soundEnabled]);
 
   // Center the ball at the top of the stage initially
   const resetBallToTop = useCallback(() => {
@@ -298,10 +319,8 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
     playSound('win');
     confetti({ particleCount: 110, spread: 90, origin: { y: 0.6 } });
     if (onFinish) onFinish(score);
-    if ((window as any)?.ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage(
-        JSON.stringify({ type: 'GAME_COMPLETED', score, streak })
-      );
+    if (hud) {
+      hud.finishGame(score, correctCount, shuffledItems.length);
     }
   };
 
@@ -330,10 +349,12 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
     const isCorrect = cat.trim().toLowerCase() === currentItem.answer.trim().toLowerCase();
 
     if (isCorrect) {
+      triggerHaptic('success');
       playSound('swish');
       const bonus = 100 + streak * 25;
       setScore((s) => s + bonus);
       setStreak((st) => st + 1);
+      setCorrectCount((c) => c + 1);
       setBoxFeedback({ cat, status: 'correct' });
 
       confetti({
@@ -352,6 +373,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
         }
       }, 700);
     } else {
+      triggerHaptic('error');
       playSound('thud');
       setStreak(0);
       setBoxFeedback({ cat, status: 'wrong' });
@@ -527,7 +549,7 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [isPhysicsActive, handleBoxLanded, resetBallToTop]);
+  }, [isPhysicsActive, handleBoxLanded, resetBallToTop, playSound]);
 
   // 🖐️ Pointer Drag Handlers (Mouse & Touch & Smartboard)
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -634,74 +656,22 @@ export const CategorizeGame: React.FC<CategorizeGameProps> = ({
   };
 
   return (
-    <div
-      className={`relative w-full max-w-4xl mx-auto flex flex-col items-center select-none rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-blue-200/80 ${
-        isEmbed ? 'p-1.5 sm:p-2' : 'p-2 sm:p-5'
-      }`}
-      style={{
-        background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F7FF 40%, #E2EDFA 100%)',
-      }}
-    >
-      {/* Background Soft Court Lighting & Floor Details */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[750px] h-[300px] bg-blue-300/20 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-0 inset-x-0 h-44 bg-gradient-to-t from-amber-200/40 via-amber-100/10 to-transparent pointer-events-none" />
-
-      {/* Top HUD Bar */}
-      <div className="w-full mb-2 p-2 sm:p-3.5 rounded-2xl bg-white/95 border border-slate-200 shadow-sm backdrop-blur-md flex items-center justify-between relative z-20 text-slate-800">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
-            <span className="text-xs font-black text-slate-600">
-              Skor: <strong className="text-slate-900 text-sm sm:text-base">{score}</strong>
-            </span>
-          </div>
-
-          {streak > 1 && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg sm:rounded-xl bg-orange-50 text-orange-600 border border-orange-200 text-[11px] sm:text-xs font-black anim-pulse-glow">
-              <Flame size={12} className="fill-orange-500 text-orange-500" />
-              <span>{streak}x Seri!</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-          <span className="font-mono text-sm sm:text-base font-black text-slate-900">{timeLeft}s</span>
-        </div>
-
-        <div className="flex items-center gap-1 sm:gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-1.5 sm:p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition-colors"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-1.5 sm:p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition-colors"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={15} />
-          </button>
-        </div>
-      </div>
-
-      {/* Instructions / Progress */}
-      <div className="w-full flex items-center justify-between px-2 mb-1.5 text-[11px] sm:text-xs font-bold text-slate-600 relative z-10">
-        <span className="flex items-center gap-1">
-          <Hand size={13} className="text-blue-600" />
-          <span className="truncate max-w-[220px] sm:max-w-none">Topu doğru sepete bırakın</span>
+    <div className="relative w-full h-full flex-1 min-h-0 flex flex-col justify-between items-center select-none overflow-hidden p-1.5 sm:p-3">
+      {/* Question / Instruction Bar */}
+      <div className="w-full max-w-xl mx-auto px-4 py-2 sm:py-2.5 rounded-2xl bg-white/90 backdrop-blur-md border-2 border-white shadow-sm flex items-center justify-between text-slate-800 mb-2 shrink-0">
+        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-slate-700">
+          <Hand size={15} className="text-orange-500" />
+          <span>Topu doğru sepete bırak!</span>
         </span>
-        <span className="bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold shrink-0">
-          Soru: {currentIdx + 1} / {shuffledItems.length}
+        <span className="bg-orange-50 border border-orange-200 text-orange-700 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold shrink-0">
+          {currentIdx + 1} / {shuffledItems.length}
         </span>
       </div>
 
-      {/* 🏀 Interactive Physics Stage (Ball at Top, Boxes at Bottom) */}
+      {/* 🏀 Interactive Physics Stage (Ball at Top, Boxes at Bottom - Spanning All Remaining Height) */}
       <div
         ref={stageRef}
-        className="w-full relative z-10 flex flex-col justify-between min-h-[360px] sm:min-h-[460px] h-[52vh] sm:h-[58vh] max-h-[560px] rounded-2xl sm:rounded-3xl border border-blue-200/80 overflow-hidden bg-gradient-to-b from-white/90 via-sky-50/40 to-amber-50/30 p-2 sm:p-4 touch-none shadow-inner"
+        className="w-full flex-1 min-h-0 relative z-10 flex flex-col justify-between rounded-3xl overflow-hidden bg-white/40 backdrop-blur-[2px] p-2 sm:p-4 touch-none border-2 border-white/80 shadow-sm"
       >
         {/* Subtle drop guide / ceiling beam */}
         <div className="absolute top-0 inset-x-8 h-2 bg-gradient-to-r from-transparent via-sky-400/30 to-transparent rounded-full" />

@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import {
-  Trophy,
-  Timer,
-  RotateCcw,
-  Volume2,
-  VolumeX,
   Sparkles,
-  Flame,
   CheckCircle2,
   Hammer,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
+import { triggerHaptic } from '../services/gameSettings';
 
 interface WhackGameProps {
   title?: string;
@@ -30,14 +26,15 @@ interface MoleSlot {
 }
 
 export const WhackGame: React.FC<WhackGameProps> = ({
-  title: _title = 'Köstebek Vurmaca',
   items,
   onFinish,
-  isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
@@ -48,6 +45,7 @@ export const WhackGame: React.FC<WhackGameProps> = ({
     visible: false,
   });
 
+  // 6 interactive mole holes (arranged in a 3x2 grid)
   const [slots, setSlots] = useState<MoleSlot[]>([
     { id: 0, isActive: false, text: '', isCorrect: false, isHit: false, isWrongHit: false },
     { id: 1, isActive: false, text: '', isCorrect: false, isHit: false, isWrongHit: false },
@@ -60,6 +58,22 @@ export const WhackGame: React.FC<WhackGameProps> = ({
   const currentItem = items[currentIdx] || items[0];
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Sync state with GameHudContext
+  useEffect(() => {
+    if (!hud) return;
+    hud.setScore(score);
+    hud.setStreak(streak);
+    hud.setTimeLeft(timeLeft);
+    hud.setQuestionInfo(currentIdx, items.length, currentItem?.question, currentItem?.image);
+  }, [hud, score, streak, timeLeft, currentIdx, items.length, currentItem]);
+
+  // Sync sound from HUD
+  useEffect(() => {
+    if (hud) {
+      setSoundEnabled(hud.soundEnabled);
+    }
+  }, [hud?.soundEnabled]);
+
   // Audio cleanup on unmount
   useEffect(() => {
     return () => {
@@ -71,7 +85,7 @@ export const WhackGame: React.FC<WhackGameProps> = ({
     };
   }, []);
 
-  // Listen for mobile backgrounding or tab hidden
+  // Pause handling
   useEffect(() => {
     const handlePause = () => {
       setIsPlaying(false);
@@ -165,7 +179,6 @@ export const WhackGame: React.FC<WhackGameProps> = ({
       }
     }
 
-    // Pick 2-3 wrong options
     const pickedWrongs = wrongs.sort(() => Math.random() - 0.5).slice(0, 3);
     const all = [correct, ...pickedWrongs].sort(() => Math.random() - 0.5);
     return { correct, all };
@@ -176,7 +189,6 @@ export const WhackGame: React.FC<WhackGameProps> = ({
     if (!isPlaying || isFinished || document.hidden) return;
     const { correct, all } = getOptionsForQuestion();
 
-    // Pick random slots for each option
     const shuffledSlotIndices = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
 
     setSlots((prev) =>
@@ -232,7 +244,7 @@ export const WhackGame: React.FC<WhackGameProps> = ({
       if (!document.hidden) {
         spawnMoles();
       }
-    }, 4000);
+    }, 3800);
     return () => clearInterval(interval);
   }, [currentIdx, isPlaying, isFinished]);
 
@@ -242,17 +254,15 @@ export const WhackGame: React.FC<WhackGameProps> = ({
     playSound('win');
     confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
     if (onFinish) onFinish(score);
-    if ((window as any)?.ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage(
-        JSON.stringify({ type: 'GAME_COMPLETED', score, streak })
-      );
+    if (hud) {
+      hud.finishGame(score, correctCount, items.length);
     }
   };
 
-  const handleWhack = (e: React.MouseEvent, slot: MoleSlot) => {
+  const handleWhack = (e: React.MouseEvent | React.TouchEvent, slot: MoleSlot) => {
     if (!slot.isActive || slot.isHit || isFinished) return;
 
-    // Trigger visual hammer strike at mouse click location
+    // Trigger visual hammer strike at touch/click location
     const rect = e.currentTarget.getBoundingClientRect();
     setHammerPos({ x: rect.left + rect.width / 2, y: rect.top + 10, visible: true });
     setTimeout(() => {
@@ -261,10 +271,12 @@ export const WhackGame: React.FC<WhackGameProps> = ({
 
     if (slot.isCorrect) {
       // Correct!
+      triggerHaptic('success');
       playSound('hit');
-      const bonus = 100 + streak * 15;
+      const bonus = 100 + streak * 20;
       setScore((prev) => prev + bonus);
       setStreak((prev) => prev + 1);
+      setCorrectCount((prev) => prev + 1);
 
       setSlots((prev) =>
         prev.map((s) => (s.id === slot.id ? { ...s, isHit: true } : s))
@@ -275,12 +287,12 @@ export const WhackGame: React.FC<WhackGameProps> = ({
         if (currentIdx + 1 < items.length) {
           setCurrentIdx((prev) => prev + 1);
         } else {
-          // Loop or finish
           finishGame();
         }
-      }, 700);
+      }, 650);
     } else {
       // Wrong mole hit
+      triggerHaptic('error');
       playSound('wrong');
       setStreak(0);
       setSlots((prev) =>
@@ -294,103 +306,41 @@ export const WhackGame: React.FC<WhackGameProps> = ({
     }
   };
 
-  const resetGame = () => {
-    setCurrentIdx(0);
-    setScore(0);
-    setStreak(0);
-    setTimeLeft(60);
-    setIsPlaying(true);
-    setIsFinished(false);
-  };
-
   return (
-    <div
-      className={`relative w-full max-w-4xl mx-auto flex flex-col items-center select-none ${
-        isEmbed ? 'p-1' : 'p-4'
-      }`}
-    >
-      {/* Top HUD Bar */}
-      <div className="w-full mb-3 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
-        {/* Score & Streak */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-600">
-              Skor: <strong className="text-slate-900 text-base">{score}</strong>
-            </span>
-          </div>
-
-          {streak > 1 && (
-            <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-black anim-pulse-glow">
-              <Flame size={14} className="fill-orange-500 text-orange-500" />
-              <span>{streak}x Seri!</span>
-            </div>
-          )}
+    <div className="relative w-full h-full flex-1 min-h-0 flex flex-col justify-between items-center select-none overflow-hidden p-2 sm:p-4">
+      {/* Question Card at Top: Translucent, friendly, non-intrusive */}
+      <div className="w-full max-w-xl mx-auto px-4 py-2.5 sm:py-3.5 rounded-2xl sm:rounded-3xl bg-white/90 backdrop-blur-md border-2 border-white shadow-md text-center mb-1 shrink-0 animate-scale-in">
+        <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-emerald-600 mb-0.5">
+          <Sparkles size={13} className="text-amber-500" />
+          <span>Doğru Köstebeğe Vur!</span>
         </div>
-
-        {/* Timer */}
-        <div className="flex items-center gap-2">
-          <Timer className="w-5 h-5 text-blue-600" />
-          <span className="font-mono text-base font-extrabold text-slate-900">
-            {timeLeft}s
-          </span>
-        </div>
-
-        {/* Audio & Restart */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Question Pin Board */}
-      <div className="w-full mb-3 p-4 rounded-2xl bg-white border-2 border-emerald-500 shadow-md text-center">
-        <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 block mb-1">
-          Soru {currentIdx + 1} / {items.length} • Doğru Cevabı Taşıyan Köstebeğe Vur!
-        </span>
-        <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 font-display">
+        <h3 className="text-base sm:text-2xl font-black font-display text-slate-900 leading-tight">
           {currentItem.question}
         </h3>
+        {currentItem.image && (
+          <div className="mt-2 max-w-[120px] max-h-[80px] mx-auto rounded-xl overflow-hidden border border-slate-200">
+            <img src={currentItem.image} alt="Soru görseli" className="w-full h-full object-cover" />
+          </div>
+        )}
       </div>
 
-      {/* Meadow Playfield (Whack-a-Mole Ground) */}
-      <div
-        className="relative w-full aspect-[4/3] sm:aspect-[16/9] min-h-[300px] sm:min-h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-emerald-700/60 shadow-2xl flex flex-col justify-end p-2 sm:p-6"
-        style={{
-          backgroundImage: 'url(/assets/whack_bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center bottom',
-        }}
-      >
-        {/* Soft Ambient Overlay */}
-        <div className="absolute inset-0 bg-emerald-950/10 pointer-events-none" />
-
-        {/* 6 Holes Grid in 2 Rows (3 per row) with Isometric Depth */}
-        <div className="relative z-10 grid grid-cols-3 gap-y-2.5 sm:gap-y-6 gap-x-2 sm:gap-x-6 w-full max-w-3xl mx-auto">
+      {/* Meadow Playfield (Whack-a-Mole Holes Grid Filling Remaining Screen) */}
+      <div className="relative z-10 flex-1 min-h-0 w-full max-w-4xl mx-auto flex flex-col justify-center items-center py-2">
+        {/* 6 Holes Grid: 3 columns x 2 rows, scaled dynamically */}
+        <div className="grid grid-cols-3 gap-y-4 sm:gap-y-10 gap-x-3 sm:gap-x-8 w-full max-w-3xl mx-auto items-end my-auto">
           {slots.map((slot) => {
             return (
               <div
                 key={slot.id}
                 onClick={(e) => handleWhack(e, slot)}
-                className="relative flex flex-col items-center justify-end h-24 sm:h-38 cursor-pointer group select-none"
+                onTouchStart={(e) => handleWhack(e, slot)}
+                className="relative flex flex-col items-center justify-end h-24 sm:h-36 md:h-44 cursor-pointer group select-none active:scale-95 transition-transform"
               >
-                {/* Hole Graphic on Ground (Transparent PNG) */}
+                {/* Hole Graphic on Ground */}
                 <div
-                  className="absolute bottom-0 w-20 sm:w-36 h-10 sm:h-18 bg-contain bg-no-repeat bg-center z-10 pointer-events-none drop-shadow-md"
+                  className="absolute bottom-0 w-24 sm:w-36 md:w-44 h-12 sm:h-18 md:h-22 bg-contain bg-no-repeat bg-center z-10 pointer-events-none drop-shadow-md"
                   style={{
-                    backgroundImage: 'url(/assets/whack_hole.png)',
+                    backgroundImage: 'url(/games/whack/hole.png)',
                   }}
                 />
 
@@ -408,23 +358,23 @@ export const WhackGame: React.FC<WhackGameProps> = ({
                 >
                   {/* Answer Badge on Top of Mole's Helmet */}
                   <div
-                    className={`px-2 sm:px-3 py-0.5 sm:py-1.5 rounded-lg sm:rounded-xl font-black text-[10px] sm:text-xs shadow-xl border-2 transition-all duration-200 -mb-1.5 sm:-mb-2 z-30 flex items-center gap-1 ${
+                    className={`px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-xl border-2 transition-all duration-200 -mb-2 sm:-mb-3 z-30 flex items-center gap-1.5 max-w-[120px] sm:max-w-[180px] ${
                       slot.isHit
                         ? 'bg-emerald-500 border-white text-white scale-110 shadow-emerald-500/50'
                         : slot.isWrongHit
-                        ? 'bg-rose-600 border-white text-white shake-anim'
-                        : 'bg-amber-400 hover:bg-amber-300 border-amber-600 text-slate-950 hover:scale-105'
+                        ? 'bg-rose-500 border-white text-white shake-anim'
+                        : 'bg-amber-400 hover:bg-amber-300 border-white text-slate-950 hover:scale-105'
                     }`}
                   >
-                    <span className="line-clamp-1">{slot.text}</span>
-                    {slot.isHit && <CheckCircle2 size={12} className="text-white shrink-0" />}
+                    <span className="truncate">{slot.text}</span>
+                    {slot.isHit && <CheckCircle2 size={14} className="text-white shrink-0" />}
                   </div>
 
-                  {/* Mole Graphic Asset (Transparent PNG) */}
+                  {/* Mole Graphic Asset */}
                   <div
-                    className="w-16 sm:w-26 h-16 sm:h-26 bg-contain bg-no-repeat bg-center drop-shadow-lg"
+                    className="w-18 sm:w-28 md:w-32 h-18 sm:h-28 md:h-32 bg-contain bg-no-repeat bg-center drop-shadow-xl"
                     style={{
-                      backgroundImage: 'url(/assets/mole_char.png)',
+                      backgroundImage: 'url(/games/whack/mole.png)',
                     }}
                   />
                 </div>
@@ -432,44 +382,21 @@ export const WhackGame: React.FC<WhackGameProps> = ({
             );
           })}
         </div>
-
-        {/* Striking Hammer Effect */}
-        {hammerPos.visible && (
-          <div
-            className="fixed pointer-events-none z-50 anim-hammer drop-shadow-2xl"
-            style={{
-              left: `${hammerPos.x}px`,
-              top: `${hammerPos.y}px`,
-              transform: 'translate(-50%, -100%)',
-            }}
-          >
-            <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 border-2 border-white shadow-2xl rotate-12 flex items-center justify-center">
-              <Hammer size={32} className="stroke-[2.5]" />
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Finished Game Overlay */}
-      {isFinished && (
-        <div className="absolute inset-0 z-40 bg-white/95 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in text-slate-800 border border-slate-200">
-          <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center mb-4 shadow-sm">
-            <Sparkles size={36} />
+      {/* Striking Hammer Effect */}
+      {hammerPos.visible && (
+        <div
+          className="fixed pointer-events-none z-50 anim-hammer drop-shadow-2xl"
+          style={{
+            left: `${hammerPos.x}px`,
+            top: `${hammerPos.y}px`,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="p-3 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-950 border-2 border-white shadow-2xl rotate-12 flex items-center justify-center">
+            <Hammer size={36} className="stroke-[2.5]" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2 font-display">
-            Tebrikler, Oyun Tamamlandı!
-          </h2>
-          <p className="text-slate-600 text-sm mb-6 max-w-md">
-            Köstebekleri yakalayarak <strong className="text-blue-600 font-bold">{score} puan</strong> topladınız!
-          </p>
-
-          <button
-            onClick={resetGame}
-            className="py-3 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-500/25 flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
-          >
-            <RotateCcw size={16} />
-            <span>Tekrar Oyna</span>
-          </button>
         </div>
       )}
     </div>

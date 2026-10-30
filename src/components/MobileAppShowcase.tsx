@@ -10,6 +10,7 @@ import {
   Zap,
   BarChart,
 } from 'lucide-react';
+import { AppStoreBadge, GooglePlayBadge } from './common/StoreBadges';
 
 export const MobileAppShowcase: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'teacher' | 'student'>('teacher');
@@ -170,6 +171,12 @@ export const MobileAppShowcase: React.FC = () => {
               <CheckCircle size={14} className="text-blue-600" />
               <span>Canlı Sınıf Senkronizasyonu</span>
             </span>
+          </div>
+
+          {/* Official App Store & Google Play Badges */}
+          <div className="pt-4 flex flex-wrap items-center gap-3">
+            <AppStoreBadge />
+            <GooglePlayBadge />
           </div>
         </div>
 

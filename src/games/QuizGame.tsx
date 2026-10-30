@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Trophy, CheckCircle2, XCircle, RotateCcw, Volume2, VolumeX, Flame } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface QuizGameProps {
   title?: string;
@@ -11,18 +12,19 @@ interface QuizGameProps {
 }
 
 const OPTION_COLORS = [
-  'bg-blue-600 hover:bg-blue-500 border-blue-400',
-  'bg-emerald-600 hover:bg-emerald-500 border-emerald-400',
-  'bg-amber-600 hover:bg-amber-500 border-amber-400',
-  'bg-purple-600 hover:bg-purple-500 border-purple-400',
+  'bg-blue-500 hover:bg-blue-600 text-white border-b-4 border-blue-700 shadow-blue-500/30',
+  'bg-emerald-500 hover:bg-emerald-600 text-white border-b-4 border-emerald-700 shadow-emerald-500/30',
+  'bg-amber-500 hover:bg-amber-600 text-white border-b-4 border-amber-700 shadow-amber-500/30',
+  'bg-purple-500 hover:bg-purple-600 text-white border-b-4 border-purple-700 shadow-purple-500/30',
 ];
 
 export const QuizGame: React.FC<QuizGameProps> = ({
   title: _title = 'Süreli Hızlı Quiz',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -33,6 +35,17 @@ export const QuizGame: React.FC<QuizGameProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const currentItem = items[currentIndex];
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(score);
+    hud?.setStreak(streak);
+    hud?.setTimeLeft(timeLeft);
+    hud?.setTotalTime(25);
+    hud?.setTotalQuestions(items.length);
+    hud?.setQuestionIndex(currentIndex);
+    hud?.setQuestionText(currentItem?.question || '');
+  }, [hud, score, streak, timeLeft, items.length, currentIndex, currentItem]);
 
   // Derive 4 options: real answer + 3 distractors from other items or default
   const getOptions = () => {
@@ -140,6 +153,8 @@ export const QuizGame: React.FC<QuizGameProps> = ({
       } else {
         setIsGameOver(true);
         confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+        const stars = score >= (items.length * 80) ? 3 : score >= (items.length * 50) ? 2 : 1;
+        hud?.finishGame(stars, Math.min(currentIndex + 1, items.length));
         if (onFinish) onFinish(score);
         if (window && (window as any).ReactNativeWebView) {
           (window as any).ReactNativeWebView.postMessage(
@@ -158,50 +173,42 @@ export const QuizGame: React.FC<QuizGameProps> = ({
   };
 
   return (
-    <div className={`flex flex-col items-center w-full max-w-3xl mx-auto ${isEmbed ? 'p-2' : 'p-6'}`}>
-      {/* Header bar */}
-      <div className="flex items-center justify-between w-full mb-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm text-slate-800">
-        <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-500" />
-          <span className="text-sm font-semibold text-slate-600">
-            Puan: <strong className="text-slate-900 text-base">{score}</strong>
-          </span>
-          {streak > 1 && (
-            <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-50 text-orange-600 border border-orange-200 flex items-center gap-1">
-              <Flame size={14} /> {streak}x Seri!
+    <div className="w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 select-none overflow-y-auto">
+      {/* Fallback Header bar when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="flex items-center justify-between w-full max-w-2xl mb-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-sm text-slate-800">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <span className="text-sm font-semibold text-slate-600">
+              Puan: <strong className="text-slate-900 text-base">{score}</strong>
             </span>
-          )}
+            {streak > 1 && (
+              <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-50 text-orange-600 border border-orange-200 flex items-center gap-1">
+                <Flame size={14} /> {streak}x
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-500">
+              Soru <span className="text-slate-900 font-extrabold">{currentIndex + 1}</span> / {items.length}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+          >
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-500">
-            Soru <span className="text-slate-900 font-extrabold">{currentIndex + 1}</span> / {items.length}
-          </span>
-        </div>
-
-        <button
-          onClick={() => setSoundEnabled(!soundEnabled)}
-          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
-        >
-          {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-        </button>
-      </div>
-
-      {/* Timer Bar */}
-      <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden mb-6">
-        <div
-          className={`h-full transition-all duration-1000 ease-linear ${
-            timeLeft > 10 ? 'bg-blue-600' : timeLeft > 5 ? 'bg-amber-500' : 'bg-rose-500 animate-pulse'
-          }`}
-          style={{ width: `${(timeLeft / 25) * 100}%` }}
-        />
-      </div>
+      )}
 
       {!isGameOver && currentItem ? (
-        <div className="w-full">
+        <div className="w-full max-w-2xl flex-1 flex flex-col justify-center py-2">
           {/* Question Card */}
-          <div className="p-6 sm:p-8 mb-6 rounded-3xl bg-white border-2 border-blue-100 shadow-xl text-center">
-            <span className="inline-block px-3 py-1 mb-3 text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 rounded-full border border-blue-200">
+          <div className="p-5 sm:p-7 mb-4 rounded-3xl bg-white/95 backdrop-blur-md border-2 border-blue-200 shadow-lg text-center">
+            <span className="inline-block px-3 py-1 mb-2 text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-50 rounded-full border border-blue-200">
               Soru {currentIndex + 1}
             </span>
 

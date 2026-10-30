@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { RotateCw, Trash2, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface WheelGameProps {
   title?: string;
@@ -11,16 +12,17 @@ interface WheelGameProps {
 }
 
 const COLORS = [
-  '#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4',
-  '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#14B8A6',
+  '#FF7AA8', '#FFB547', '#4FD1A5', '#5B9CFF', '#A78BFA',
+  '#7ED957', '#4DB8FF', '#36C5D6', '#FF8FA3', '#F6B73C',
 ];
 
 export const WheelGame: React.FC<WheelGameProps> = ({
   title = 'Rastgele Çarkıfelek',
   items: initialItems,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [items, setItems] = useState<ActivityItem[]>(initialItems);
   const [isSpinning, setIsSpinning] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ActivityItem | null>(null);
@@ -29,6 +31,13 @@ export const WheelGame: React.FC<WheelGameProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rotationRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setTotalQuestions(initialItems.length);
+    hud?.setQuestionIndex(initialItems.length - items.length);
+    hud?.setQuestionText('Çarkı çevirerek bir soru seç!');
+  }, [hud, items.length, initialItems.length]);
 
   // Clean up AudioContext on unmount
   useEffect(() => {
@@ -262,83 +271,86 @@ export const WheelGame: React.FC<WheelGameProps> = ({
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center w-full ${isEmbed ? 'p-2' : 'p-6'}`}>
-      {/* Title Bar */}
-      {!isEmbed && (
-        <div className="flex items-center justify-between w-full max-w-lg mb-4">
+    <div className="w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 select-none overflow-y-auto">
+      {/* Title Bar when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="flex items-center justify-between w-full max-w-lg mb-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-amber-500" />
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
+            <Sparkles className="w-5 h-5 text-pink-500" />
+            <h2 className="text-base font-bold text-slate-900">{title}</h2>
           </div>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
+            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
             title={soundEnabled ? 'Sesi Kapat' : 'Sesi Aç'}
           >
-            {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>
         </div>
       )}
 
-      {/* Wheel Wrapper with Pointer */}
-      <div className="relative flex items-center justify-center my-2 max-w-full">
-        {/* Top Pointer Indicator */}
-        <div className="absolute -top-2.5 sm:-top-3.5 z-20 w-0 h-0 border-l-[10px] sm:border-l-[14px] border-l-transparent border-r-[10px] sm:border-r-[14px] border-r-transparent border-t-[20px] sm:border-t-[28px] border-t-amber-500 drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]" />
+      {/* Main Wheel Area */}
+      <div className="flex-1 w-full max-w-lg flex flex-col items-center justify-center my-1">
+        {/* Wheel Wrapper with Pointer */}
+        <div className="relative flex items-center justify-center my-2 max-w-full">
+          {/* Top Pointer Indicator */}
+          <div className="absolute -top-2.5 sm:-top-3.5 z-20 w-0 h-0 border-l-[10px] sm:border-l-[14px] border-l-transparent border-r-[10px] sm:border-r-[14px] border-r-transparent border-t-[20px] sm:border-t-[28px] border-t-pink-500 drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]" />
 
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={600}
-          onClick={spin}
-          className={`w-[min(300px,82vw)] h-[min(300px,82vw)] sm:w-[380px] sm:h-[380px] max-w-full cursor-pointer transition-transform duration-200 ${
-            isSpinning ? 'cursor-not-allowed scale-[0.99]' : 'hover:scale-[1.01]'
-          }`}
-        />
-      </div>
+          <canvas
+            ref={canvasRef}
+            width={600}
+            height={600}
+            onClick={spin}
+            className={`w-[min(280px,78vw)] h-[min(280px,78vw)] sm:w-[360px] sm:h-[360px] max-w-full cursor-pointer transition-transform duration-200 drop-shadow-xl ${
+              isSpinning ? 'cursor-not-allowed scale-[0.99]' : 'hover:scale-[1.01]'
+            }`}
+          />
+        </div>
 
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-center gap-3 mt-3 w-full">
-        <button
-          onClick={spin}
-          disabled={isSpinning || items.length === 0}
-          className={`px-6 sm:px-8 py-3 sm:py-3.5 rounded-2xl font-black text-sm sm:text-base flex items-center gap-2 shadow-lg transition-all cursor-pointer ${
-            isSpinning || items.length === 0
-              ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 active:scale-95'
-          }`}
-        >
-          <RotateCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isSpinning ? 'animate-spin' : ''}`} />
-          {isSpinning ? 'Çevriliyor...' : 'ÇARKINI ÇEVİR!'}
-        </button>
-
-        {items.length < initialItems.length && (
+        {/* Controls */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-3 w-full">
           <button
-            onClick={() => {
-              setItems(initialItems);
-              setSelectedItem(null);
-            }}
-            className="px-4 py-3.5 rounded-2xl font-bold text-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-xs cursor-pointer"
+            onClick={spin}
+            disabled={isSpinning || items.length === 0}
+            className={`px-8 py-3.5 sm:py-4 rounded-full font-black text-sm sm:text-base flex items-center gap-2 shadow-xl transition-all cursor-pointer border-2 border-pink-300 ${
+              isSpinning || items.length === 0
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-pink-500/30 active:scale-95'
+            }`}
           >
-            Sıfırla
+            <RotateCw className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
+            {isSpinning ? 'Çevriliyor...' : 'ÇARKINI ÇEVİR!'}
           </button>
-        )}
+
+          {items.length < initialItems.length && (
+            <button
+              onClick={() => {
+                setItems(initialItems);
+                setSelectedItem(null);
+              }}
+              className="px-4 py-3.5 rounded-full font-bold text-sm bg-white/90 hover:bg-white text-slate-700 border-2 border-slate-200 shadow-sm cursor-pointer"
+            >
+              Sıfırla
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Selected Item Modal / Overlay */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl text-center transform scale-100 transition-all text-slate-800">
-            <div className="inline-flex p-3 mb-3 rounded-full bg-amber-50 text-amber-500 border border-amber-200 shadow-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-pink-950/25 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md p-6 rounded-3xl bg-white border-2 border-pink-200 shadow-2xl text-center transform scale-100 transition-all text-slate-800">
+            <div className="inline-flex p-3 mb-3 rounded-full bg-pink-50 text-pink-500 border border-pink-200 shadow-xs">
               <Sparkles className="w-8 h-8 animate-bounce" />
             </div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-blue-600">
+            <h3 className="text-xs font-black uppercase tracking-wider text-pink-600">
               Çarkın Seçimi
             </h3>
-            <p className="my-4 text-2xl font-black text-slate-900 px-2 leading-snug">
+            <p className="my-4 text-xl sm:text-2xl font-black text-slate-900 px-2 leading-snug">
               {selectedItem.question || selectedItem.answer}
             </p>
             {selectedItem.answer && selectedItem.question !== selectedItem.answer && (
-              <p className="mb-6 text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <p className="mb-6 text-sm text-slate-600 bg-pink-50/50 p-3 rounded-xl border border-pink-100">
                 {selectedItem.answer}
               </p>
             )}
@@ -353,7 +365,7 @@ export const WheelGame: React.FC<WheelGameProps> = ({
               </button>
               <button
                 onClick={() => setSelectedItem(null)}
-                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all cursor-pointer active:scale-95"
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-pink-600 hover:bg-pink-700 text-white shadow-lg shadow-pink-500/25 transition-all cursor-pointer active:scale-95"
               >
                 Devam Et
               </button>

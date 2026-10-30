@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 74" fill="none">
+  <!-- Outer Rim / Bezel -->
+  <rect x="2" y="2" width="236" height="70" rx="35" fill="#D32F2F" stroke="#E66868" stroke-width="2"/>
+  
+  <!-- Main Glossy Red Body -->
+  <rect x="6" y="6" width="228" height="62" rx="31" fill="url(#red_grad)" stroke="#FFFFFF" stroke-width="3"/>
+
+  <!-- Top Glass Highlight Reflection -->
+  <path d="M24 10H216C224 10 230 14 230 20C215 32 170 34 120 34C70 34 25 32 10 20C10 14 16 10 24 10Z" fill="#FFFFFF" fill-opacity="0.32"/>
+
+  <!-- Left Cyan-Blue Play Triangle Circle -->
+  <g transform="translate(24, 17)">
+    <circle cx="20" cy="20" r="18" fill="url(#cyan_grad)" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M16 12L28 20L16 28V12Z" fill="#FFFFFF"/>
+  </g>
+
+  <!-- White Bold Cartoon Text: Başla -->
+  <text x="145" y="47" text-anchor="middle" font-family="'Poppins', 'Arial Black', sans-serif" font-weight="900" font-size="28" fill="#FFFFFF" letter-spacing="1">
+    Başla
+  </text>
+
+  <defs>
+    <linearGradient id="red_grad" x1="120" y1="6" x2="120" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF5252"/>
+      <stop offset="50%" stop-color="#E53935"/>
+      <stop offset="100%" stop-color="#B71C1C"/>
+    </linearGradient>
+    <linearGradient id="cyan_grad" x1="20" y1="2" x2="20" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4FC3F7"/>
+      <stop offset="100%" stop-color="#0288D1"/>
+    </linearGradient>
+  </defs>
+</svg>

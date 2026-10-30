@@ -12,6 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface TimelineGameProps {
   title?: string;
@@ -30,8 +31,9 @@ export const TimelineGame: React.FC<TimelineGameProps> = ({
   title: _title = 'Zaman Çizelgesi & Sıralama',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [orderedItems, setOrderedItems] = useState<TimelineItem[]>([]);
   const [checked, setChecked] = useState(false);
   const [score, setScore] = useState(0);
@@ -39,6 +41,15 @@ export const TimelineGame: React.FC<TimelineGameProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(score);
+    hud?.setTotalQuestions(orderedItems.length);
+    const correctCount = checked ? orderedItems.filter((it, idx) => it.correctIndex === idx).length : 0;
+    hud?.setQuestionIndex(correctCount);
+    hud?.setQuestionText('Adımları doğru sıraya diz!');
+  }, [hud, score, orderedItems, checked]);
 
   const playSound = (type: 'move' | 'correct' | 'wrong' | 'win') => {
     if (!soundEnabled || document.hidden) return;
@@ -170,6 +181,7 @@ export const TimelineGame: React.FC<TimelineGameProps> = ({
         setIsFinished(true);
         playSound('win');
         confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+        hud?.finishGame(3, correctCount);
         if (onFinish) onFinish(finalScore);
       }, 700);
     } else {
@@ -192,43 +204,43 @@ export const TimelineGame: React.FC<TimelineGameProps> = ({
   };
 
   return (
-    <div
-      className={`relative w-full max-w-2xl mx-auto flex flex-col items-center select-none ${
-        isEmbed ? 'p-1' : 'p-4'
-      }`}
-    >
-      {/* HUD Bar */}
-      <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-600">
-              Skor: <strong className="text-slate-900 text-base">{score}</strong>
+    <div className="relative w-full h-full flex flex-col items-center justify-center select-none p-2 sm:p-4 overflow-y-auto">
+      {/* Fallback HUD Bar when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="w-full max-w-xl mb-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-sm flex items-center justify-between text-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <span className="text-xs font-extrabold text-slate-600">
+                Skor: <strong className="text-slate-900 text-base">{score}</strong>
+              </span>
+            </div>
+            <span className="text-xs font-bold text-amber-700 flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-lg">
+              <Clock size={14} className="text-amber-600" /> Sıralama
             </span>
           </div>
 
-          <span className="text-xs font-bold text-amber-700 flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-lg">
-            <Clock size={14} className="text-amber-600" /> Doğru Sıralamaya Diz
-          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Ses"
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              onClick={resetGame}
+              className="p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+              title="Yeniden Başlat"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
         </div>
+      )}
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Sesi Aç/Kapat"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-          <button
-            onClick={resetGame}
-            className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-            title="Yeniden Başlat"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
+      {/* Main Container */}
+      <div className="w-full max-w-xl flex-1 flex flex-col justify-center py-2">
 
       {/* Timeline Instructions */}
       <div className="w-full mb-4 p-4 rounded-2xl bg-white border-2 border-orange-500 shadow-md text-center">
@@ -306,6 +318,7 @@ export const TimelineGame: React.FC<TimelineGameProps> = ({
         <Check size={20} className="stroke-[3]" />
         <span>Sıralamayı Kontrol Et</span>
       </button>
+      </div>
 
       {/* Finished Modal */}
       {isFinished && (

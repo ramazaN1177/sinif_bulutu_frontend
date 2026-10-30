@@ -14,7 +14,7 @@ export const TemplateCardPreview: React.FC<TemplateCardPreviewProps> = ({
   className,
 }) => {
   const [hasError, setHasError] = React.useState(false);
-  const imageSrc = `/assets/templates/${templateType}.jpg?v=2`;
+  const imageSrc = `/games/${templateType}/preview.jpg?v=3`;
 
   return (
     <div

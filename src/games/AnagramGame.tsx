@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { RotateCcw, Check, ArrowRight, Trophy, Sparkles } from 'lucide-react';
 import type { ActivityItem } from '../types/game';
+import { useGameHudOptional } from '../components/game/GameHudContext';
 
 interface AnagramGameProps {
   title?: string;
@@ -14,8 +15,9 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({
   title: _title = 'Anagram / Kelime Düzenleme',
   items,
   onFinish,
-  isEmbed = false,
+  isEmbed: _isEmbed = false,
 }) => {
+  const hud = useGameHudOptional();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userLetters, setUserLetters] = useState<string[]>([]);
   const [bankLetters, setBankLetters] = useState<{ id: number; char: string; used: boolean }[]>([]);
@@ -25,6 +27,14 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({
 
   const currentItem = items[currentIndex];
   const targetWord = (currentItem?.answer || '').toUpperCase().trim();
+
+  // Sync with GameHud
+  useEffect(() => {
+    hud?.setScore(score);
+    hud?.setTotalQuestions(items.length);
+    hud?.setQuestionIndex(currentIndex);
+    hud?.setQuestionText(currentItem?.question || 'Harfleri düzenle!');
+  }, [hud, score, items.length, currentIndex, currentItem]);
 
   const initQuestion = () => {
     if (!currentItem) return;
@@ -84,31 +94,35 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({
     } else {
       setIsFinished(true);
       confetti({ particleCount: 90, spread: 70, origin: { y: 0.5 } });
+      const stars = score >= items.length * 40 ? 3 : score >= items.length * 20 ? 2 : 1;
+      hud?.finishGame(stars, items.length);
       if (onFinish) onFinish(score);
     }
   };
 
   return (
-    <div className={`flex flex-col items-center w-full max-w-3xl mx-auto ${isEmbed ? 'p-2' : 'p-6'}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between w-full mb-6 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-md">
-        <span className="text-sm font-bold text-slate-500">
-          Kelime <strong className="text-slate-900 text-base">{currentIndex + 1}</strong> / {items.length}
-        </span>
-        <span className="text-sm font-bold text-slate-500 flex items-center gap-1.5">
-          <Trophy size={16} className="text-amber-500" />
-          Puan: <strong className="text-slate-900 text-base">{score}</strong>
-        </span>
-      </div>
+    <div className="w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 select-none overflow-y-auto">
+      {/* Fallback Header when NOT inside GameShell */}
+      {!hud?.isInsideShell && (
+        <div className="flex items-center justify-between w-full max-w-2xl mb-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-sm">
+          <span className="text-sm font-bold text-slate-500">
+            Kelime <strong className="text-slate-900 text-base">{currentIndex + 1}</strong> / {items.length}
+          </span>
+          <span className="text-sm font-bold text-slate-500 flex items-center gap-1.5">
+            <Trophy size={16} className="text-amber-500" />
+            Puan: <strong className="text-slate-900 text-base">{score}</strong>
+          </span>
+        </div>
+      )}
 
       {!isFinished && currentItem ? (
-        <div className="w-full flex flex-col items-center">
+        <div className="w-full max-w-2xl flex-1 flex flex-col items-center justify-center py-2">
           {/* Hint / Question */}
-          <div className="p-6 mb-8 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 text-center w-full shadow-sm">
-            <span className="text-xs font-black uppercase tracking-wider text-blue-700 block mb-2">
+          <div className="p-4 sm:p-6 mb-4 rounded-3xl bg-white/95 backdrop-blur-md border-2 border-purple-200 text-center w-full shadow-md">
+            <span className="text-xs font-black uppercase tracking-wider text-purple-700 block mb-1">
               İpucu / Tanım
             </span>
-            <p className="text-lg sm:text-xl font-black text-slate-900">{currentItem.question}</p>
+            <p className="text-base sm:text-xl font-black text-slate-800">{currentItem.question}</p>
           </div>
 
           {/* User's Answer Slots */}

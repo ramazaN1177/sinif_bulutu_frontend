@@ -19,6 +19,8 @@ import {
   Smartphone,
   PlusCircle,
   Play,
+  Car,
+  Building2,
 } from 'lucide-react';
 import type { Activity, TemplateType } from '../types/game';
 import { TemplateCardPreview } from './TemplateCardPreview';
@@ -273,6 +275,38 @@ export const SAMPLE_ACTIVITIES: Activity[] = [
       { id: '4', question: 'Cumhuriyetimiz ___ yılında ilan edilmiştir.', answer: '1923', options: ['1923', '1920', '1919', '1938'] },
     ],
   },
+  {
+    id: 'act_race',
+    title: 'Hızlı Yarış (Matematik & Mantık)',
+    description: 'Doğru cevaplarla yeşil arabayı hızlandırın, rakip mavi arabayı geçip bitiş çizgisine ilk ulaşın.',
+    templateType: 'race',
+    subject: 'Matematik',
+    gradeLevel: '3-4. Sınıf',
+    playCount: 4120,
+    items: [
+      { id: '1', question: '9 x 6 = ?', answer: '54', options: ['54', '45', '63', '48'] },
+      { id: '2', question: '8 x 7 = ?', answer: '56', options: ['56', '54', '64', '49'] },
+      { id: '3', question: '12 x 5 = ?', answer: '60', options: ['60', '50', '65', '70'] },
+      { id: '4', question: '15 + 28 = ?', answer: '43', options: ['43', '45', '38', '42'] },
+      { id: '5', question: '72 / 8 = ?', answer: '9', options: ['9', '8', '7', '6'] },
+    ],
+  },
+  {
+    id: 'act_tower',
+    title: 'Bina Ustası (Kule İnşaatı)',
+    description: 'Soruları bilerek katları vince bağlayın; sallanan katı en dengeli anda bırakıp kuleyi yükseltin.',
+    templateType: 'tower',
+    subject: 'Genel Kültür',
+    gradeLevel: '3-5. Sınıf',
+    playCount: 4560,
+    items: [
+      { id: '1', question: 'Güneş sistemindeki en büyük gezegen hangisidir?', answer: 'Jüpiter', options: ['Jüpiter', 'Mars', 'Venüs', 'Satürn'] },
+      { id: '2', question: 'Türkiye’nin başkenti neresidir?', answer: 'Ankara', options: ['Ankara', 'İstanbul', 'İzmir', 'Antalya'] },
+      { id: '3', question: 'Suyun donma noktası kaç santigrat derecedir?', answer: '0°C', options: ['0°C', '100°C', '-10°C', '10°C'] },
+      { id: '4', question: 'Dünyamızın tek doğal uydusu nedir?', answer: 'Ay', options: ['Ay', 'Güneş', 'Mars', 'Kutup Yıldızı'] },
+      { id: '5', question: 'İstiklal Marşımızın şairi kimdir?', answer: 'Mehmet Akif Ersoy', options: ['Mehmet Akif Ersoy', 'Yahya Kemal', 'Nazım Hikmet', 'Ziya Gökalp'] },
+    ],
+  },
 ];
 
 export interface TemplateDefinition {
@@ -457,6 +491,28 @@ export const EDUCATIONAL_TEMPLATES: TemplateDefinition[] = [
     icon: BookOpen,
     accentColor: 'text-emerald-600',
     badgeBg: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  },
+  // 17. Hızlı Yarış
+  {
+    type: 'race',
+    name: 'Hızlı Yarış',
+    category: 'Bilgi Yarışması',
+    description: 'Doğru cevaplarla yeşil arabayı hızlandırın, rakip mavi arabayı geçip bitiş çizgisine ilk ulaşın.',
+    tags: ['Yarış', 'Araba', 'Hız & Refleks'],
+    icon: Car,
+    accentColor: 'text-emerald-600',
+    badgeBg: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  },
+  // 18. Bina Ustası
+  {
+    type: 'tower',
+    name: 'Bina Ustası (Kule İnşaatı)',
+    category: 'Sıralama & Mantık',
+    description: 'Soruları bilerek katları vince bağlayın; sallanan katı en dengeli anda bırakıp kuleyi yükseltin.',
+    tags: ['Denge', 'Fizik', 'Kule İnşaatı'],
+    icon: Building2,
+    accentColor: 'text-amber-600',
+    badgeBg: 'bg-amber-50 border-amber-200 text-amber-700',
   },
 ];
 

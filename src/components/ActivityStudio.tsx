@@ -20,6 +20,8 @@ import {
   Image as ImageIcon,
   Upload,
   Link as LinkIcon,
+  FileEdit,
+  Gamepad2,
 } from 'lucide-react';
 import type { Activity, ActivityItem, TemplateType } from '../types/game';
 import { CategorizeGame, BOX_PALETTES } from '../games/CategorizeGame';
@@ -37,6 +39,8 @@ import { TimelineGame } from '../games/TimelineGame';
 import { FlashcardGame } from '../games/FlashcardGame';
 import { WhackGame } from '../games/WhackGame';
 import { AirplaneGame } from '../games/AirplaneGame';
+import { RaceGame } from '../games/RaceGame';
+import { TowerGame } from '../games/TowerGame';
 import { EDUCATIONAL_TEMPLATES, SAMPLE_ACTIVITIES } from './TemplateGrid';
 import { TemplateCardPreview } from './TemplateCardPreview';
 
@@ -428,6 +432,10 @@ export const ActivityStudio: React.FC<ActivityStudioProps> = ({
         return <WhackGame title={title} items={items} isEmbed={true} />;
       case 'airplane':
         return <AirplaneGame title={title} items={items} isEmbed={true} />;
+      case 'race':
+        return <RaceGame title={title} items={items} isEmbed={true} />;
+      case 'tower':
+        return <TowerGame title={title} items={items} isEmbed={true} />;
       default:
         return <QuizGame title={title} items={items} isEmbed={true} />;
     }
@@ -492,7 +500,7 @@ export const ActivityStudio: React.FC<ActivityStudioProps> = ({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <span>📝 Soruları Düzenle</span>
+          <span className="flex items-center gap-1.5"><FileEdit size={14} /> Soruları Düzenle</span>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 font-extrabold">
             {items.length}
           </span>
@@ -504,7 +512,7 @@ export const ActivityStudio: React.FC<ActivityStudioProps> = ({
           title="Oyunu tam ekran mobil oyun gibi test edin"
         >
           <Play size={13} className="fill-white" />
-          <span>🎮 Canlı Oyunu Test Et</span>
+          <span className="flex items-center gap-1.5"><Gamepad2 size={13} /> Canlı Oyunu Test Et</span>
         </button>
       </div>
 
@@ -1151,7 +1159,7 @@ export const ActivityStudio: React.FC<ActivityStudioProps> = ({
                         {idx + 1}
                       </span>
                       <span className="text-[11px] font-bold text-slate-500">
-                        {templateType === 'quiz'
+                        {templateType === 'quiz' || templateType === 'race' || templateType === 'tower'
                           ? 'Soru & Şıklar'
                           : templateType === 'categorize'
                           ? 'Düşen Öğe & Kutu'
@@ -1263,11 +1271,11 @@ export const ActivityStudio: React.FC<ActivityStudioProps> = ({
                         ))}
                       </select>
                     </div>
-                  ) : templateType === 'quiz' ? (
+                  ) : (templateType === 'quiz' || templateType === 'race' || templateType === 'tower') ? (
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-black text-slate-400 uppercase">Seçenekler & Doğru Cevap</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(item.options || ['A', 'B', 'C', 'D']).map((opt, optIdx) => (
+                        {(item.options || (item.answer ? [item.answer, 'Seçenek 2', 'Seçenek 3', 'Seçenek 4'] : ['A', 'B', 'C', 'D'])).map((opt, optIdx) => (
                           <div key={optIdx} className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/70 border border-slate-200/70">
                             <input
                               type="radio"
@@ -1509,7 +1517,7 @@ export const ActivityStudio: React.FC<ActivityStudioProps> = ({
                 className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 active:scale-98 transition-all cursor-pointer"
               >
                 <Play size={16} className="fill-white" />
-                <span>🎮 Canlı Oyunu Test Et (Tam Ekran)</span>
+                <span className="flex items-center gap-1.5"><Gamepad2 size={16} /> Canlı Oyunu Test Et (Tam Ekran)</span>
               </button>
             </div>
           </div>
@@ -1547,7 +1555,7 @@ export const ActivityStudio: React.FC<ActivityStudioProps> = ({
                 title="Oyunu mobil gibi tam ekranda test edin"
               >
                 <Play size={12} className="fill-white" />
-                <span>🎮 Canlı Oyunu Test Et</span>
+                <span className="flex items-center gap-1.5"><Gamepad2 size={13} /> Canlı Oyunu Test Et</span>
               </button>
               <button
                 onClick={() => setPreviewKey((k) => k + 1)}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 60" fill="none">
+  <!-- Top Eyelet / Loop -->
+  <circle cx="22" cy="7" r="5" stroke="#334155" stroke-width="2.5" fill="none"/>
+
+  <!-- Pulley Block Body (Hazard Striped Yellow / Dark Slate) -->
+  <g transform="translate(8, 12)">
+    <rect x="0" y="0" width="28" height="26" rx="3" fill="#FBBF24" stroke="#D97706" stroke-width="1.5"/>
+    <!-- Diagonal Hazard Stripes -->
+    <path d="M-4 10L14 -4 M2 26L26 2 M12 30L32 10" stroke="#1E293B" stroke-width="4.5" stroke-linecap="square"/>
+    <!-- Center Bolt -->
+    <circle cx="14" cy="13" r="3" fill="#334155" stroke="#FFFFFF" stroke-width="1"/>
+  </g>
+
+  <!-- Heavy Steel Hook -->
+  <g transform="translate(13, 36)">
+    <rect x="7" y="0" width="4" height="6" fill="#334155"/>
+    <path d="M9 5V13C9 17.5 13 20 16 17C18 15 17 12 15 12" stroke="#1E293B" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

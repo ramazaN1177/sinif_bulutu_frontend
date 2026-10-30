@@ -13,7 +13,9 @@ export type TemplateType =
   | 'balloon'
   | 'timeline'
   | 'dragword'
-  | 'cardsort';
+  | 'cardsort'
+  | 'race'
+  | 'tower';
 
 export interface ActivityItem {
   id: string;
@@ -40,4 +42,5 @@ export interface Activity {
   boxImages?: Record<string, string>; // Category/Basket image mapping: category -> image URL/Base64
   creatorName?: string;
   playCount: number;
+  themeId?: string; // Optional custom theme ID (default matches templateType)
 }

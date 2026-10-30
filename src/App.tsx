@@ -232,23 +232,25 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col selection:bg-blue-600 selection:text-white">
-      {/* 1. Navbar with sticky solid light styling and View switching */}
-      <Navbar
-        currentView={currentView}
-        onNavigateView={(view) => setCurrentView(view)}
-        onDownloadClick={() => {
-          if (currentView !== 'landing') {
-            setCurrentView('landing');
-            setTimeout(() => {
+      {/* 1. Navbar with sticky solid light styling and View switching (Hidden when game is playing) */}
+      {!activeActivity && (
+        <Navbar
+          currentView={currentView}
+          onNavigateView={(view) => setCurrentView(view)}
+          onDownloadClick={() => {
+            if (currentView !== 'landing') {
+              setCurrentView('landing');
+              setTimeout(() => {
+                document.getElementById('mobile-app')?.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            } else {
               document.getElementById('mobile-app')?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-          } else {
-            document.getElementById('mobile-app')?.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
-        onLoginClick={() => openAuth('login')}
-        onRegisterClick={() => openAuth('register')}
-      />
+            }
+          }}
+          onLoginClick={() => openAuth('login')}
+          onRegisterClick={() => openAuth('register')}
+        />
+      )}
 
       <main className="flex-1">
         {/* VIEW 1: DASHBOARD (Teacher Management Portal) */}
@@ -368,8 +370,8 @@ export default function App() {
         )}
       </main>
 
-      {/* 7. Footer */}
-      <Footer />
+      {/* 7. Footer (Hidden when game is playing) */}
+      {!activeActivity && <Footer />}
 
       {/* Interactive Activity Player Modal (Clean Light Theme & Fullscreen) */}
       {activeActivity && (
